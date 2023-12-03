@@ -1,9 +1,10 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_rapier2d::{dynamics::LockedAxes, geometry::Collider};
 
 mod character;
+mod devices;
 mod enemy;
 mod physics;
 mod player;
@@ -16,6 +17,7 @@ fn main() {
             character::CharacterPlugin,
             player::PlayerPlugin,
             enemy::EnemyPlugin,
+            devices::DevicesPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -50,21 +52,27 @@ fn setup(
 
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 5.0).looking_to(Vec3::NEG_Z, Vec3::Y),
+        projection: Projection::Orthographic(OrthographicProjection {
+            scaling_mode: ScalingMode::FixedVertical(5.0),
+            ..Default::default()
+        }),
         ..Default::default()
     });
 
-    commands.spawn(player::PlayerBundle {
-        mesh: player_mesh,
-        material: player_mat,
-        collider: Collider::ball(0.15),
-        locked_axes: LockedAxes::ROTATION_LOCKED,
-        character: character::Character {
-            acceleration: 10.0,
-            max_speed: 3.0,
+    commands
+        .spawn(player::PlayerBundle {
+            mesh: player_mesh,
+            material: player_mat,
+            collider: Collider::ball(0.15),
+            locked_axes: LockedAxes::ROTATION_LOCKED,
+            character: character::Character {
+                acceleration: 10.0,
+                max_speed: 3.0,
+                ..Default::default()
+            },
             ..Default::default()
-        },
-        ..Default::default()
-    });
+        })
+        .insert(devices::fireball::FireballLauncher::default());
 
     let n = 20;
     for i in 0..n {
