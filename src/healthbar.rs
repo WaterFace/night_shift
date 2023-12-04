@@ -69,13 +69,14 @@ fn setup_healthbars(
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
+#[repr(C)]
 pub struct HealthbarMaterial {
     #[uniform(0)]
-    pub fraction: f32,
-    #[uniform(1)]
     pub filled_color: Color,
-    #[uniform(2)]
+    #[uniform(0)]
     pub empty_color: Color,
+    #[uniform(0)]
+    pub fraction: f32,
 }
 
 impl Material for HealthbarMaterial {
@@ -103,6 +104,7 @@ fn load_healthbar_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>
         fraction: 1.0,
         filled_color: Color::RED,
         empty_color: Color::DARK_GRAY,
+        ..Default::default()
     };
 
     commands.insert_resource(HealthbarAssets {
