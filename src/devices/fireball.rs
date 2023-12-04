@@ -100,7 +100,6 @@ fn aim_fireball_launcher(
     mut query: Query<(&mut FireballLauncher, &Transform)>,
     main_window_query: Query<&Window, With<PrimaryWindow>>,
     main_camera_query: Query<(&Camera, &GlobalTransform)>,
-    mut gizmos: Gizmos,
 ) {
     let Ok(main_window) = main_window_query.get_single() else {
         return;
@@ -131,7 +130,6 @@ fn aim_fireball_launcher(
         };
 
         let dir = (cursor_pos - launcher_pos).normalize_or_zero();
-        gizmos.line_2d(launcher_pos, cursor_pos, Color::RED);
 
         launcher.direction = dir;
     }
