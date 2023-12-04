@@ -1,6 +1,8 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 
+use crate::health::DamageEvent;
+
 #[derive(Debug, Component)]
 pub struct FireballLauncher {
     pub direction: Vec2,
@@ -61,6 +63,7 @@ fn handle_fireball_collisions(
     enemy_query: Query<Entity, With<crate::enemy::Enemy>>,
     mut fireball_query: Query<(Entity, &mut Fireball), Without<crate::enemy::Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
+    mut damage_events: EventWriter<DamageEvent>,
 ) {
     for ev in collision_events.read() {
         match ev {
@@ -78,6 +81,12 @@ fn handle_fireball_collisions(
                         continue;
                     }
                 };
+
+                damage_events.send(DamageEvent {
+                    entity: enemy_entity,
+                    amount: fireball.damage,
+                });
+                debug!("Fireball hit enemy {:?}", enemy_entity);
 
                 if fireball.punch_through > 0 {
                     fireball.punch_through -= 1;

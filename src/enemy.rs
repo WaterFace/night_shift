@@ -1,26 +1,32 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::character;
+use crate::{
+    character,
+    health::{DeathEvent, Health},
+};
 
 #[derive(Component, Debug, Default)]
-pub struct Enemy {
-    pub health: f32,
-}
+pub struct Enemy;
 
 #[derive(Bundle, Default)]
 pub struct EnemyBundle {
     pub enemy: Enemy,
     pub character: character::Character,
+    pub health: Health,
+
     pub rigid_body: RigidBody,
     pub velocity: Velocity,
     pub collider: Collider,
     pub locked_axes: LockedAxes,
+
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
+
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
 }
@@ -40,10 +46,23 @@ fn move_enemies(
     }
 }
 
+fn handle_enemy_death(
+    mut commands: Commands,
+    query: Query<Entity, With<Enemy>>,
+    mut death_events: EventReader<DeathEvent>,
+) {
+    // TODO: do something fancier, like an animation, play a sound, etc.
+    for ev in death_events.read() {
+        if query.contains(ev.entity) {
+            commands.entity(ev.entity).despawn_recursive();
+        }
+    }
+}
+
 pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, move_enemies);
+        app.add_systems(Update, (move_enemies, handle_enemy_death));
     }
 }

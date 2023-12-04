@@ -1,11 +1,14 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy::{log::LogPlugin, prelude::*, render::camera::ScalingMode};
 use bevy_rapier2d::{dynamics::LockedAxes, geometry::Collider};
+use health::Health;
 
 mod character;
 mod devices;
 mod enemy;
+mod health;
+mod healthbar;
 mod physics;
 mod player;
 
@@ -21,6 +24,8 @@ fn main() {
             player::PlayerPlugin,
             enemy::EnemyPlugin,
             devices::DevicesPlugin,
+            health::HealthPlugin,
+            healthbar::HealthbarPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -33,7 +38,7 @@ fn setup(
 ) {
     let player_mesh = meshes.add(
         shape::Quad {
-            size: Vec2::splat(0.3),
+            size: Vec2::splat(1.0),
             ..Default::default()
         }
         .into(),
@@ -42,7 +47,7 @@ fn setup(
 
     let enemy_mesh = meshes.add(
         shape::Quad {
-            size: Vec2::splat(0.2),
+            size: Vec2::splat(1.0),
             ..Default::default()
         }
         .into(),
@@ -66,13 +71,18 @@ fn setup(
         .spawn(player::PlayerBundle {
             mesh: player_mesh,
             material: player_mat,
-            collider: Collider::ball(0.15),
+            collider: Collider::ball(0.5),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             character: character::Character {
                 acceleration: 10.0,
                 max_speed: 3.0,
                 ..Default::default()
             },
+            health: Health {
+                current: 100.0,
+                maximum: 100.0,
+            },
+            transform: Transform::from_scale(Vec3::splat(0.3)),
             ..Default::default()
         })
         .insert(devices::fireball::FireballLauncher::default());
@@ -83,13 +93,18 @@ fn setup(
         commands.spawn(enemy::EnemyBundle {
             mesh: enemy_mesh.clone(),
             material: enemy_mat.clone(),
-            transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0),
-            collider: Collider::ball(0.1),
+            transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
+                .with_scale(Vec3::splat(0.2)),
+            collider: Collider::ball(0.5),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             character: character::Character {
                 acceleration: 5.0,
                 max_speed: 1.5,
                 ..Default::default()
+            },
+            health: Health {
+                current: 2.0,
+                maximum: 2.0,
             },
             ..Default::default()
         });

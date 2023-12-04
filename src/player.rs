@@ -1,7 +1,7 @@
 use bevy::{math::vec2, prelude::*};
 use bevy_rapier2d::prelude::*;
 
-use crate::character;
+use crate::{character, health::Health};
 
 #[derive(Debug, Default, Component)]
 pub struct Player;
@@ -10,15 +10,20 @@ pub struct Player;
 pub struct PlayerBundle {
     pub player: Player,
     pub character: character::Character,
+    pub health: Health,
+
     pub rigid_body: RigidBody,
     pub velocity: Velocity,
     pub collider: Collider,
     pub locked_axes: LockedAxes,
+
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
+
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+
     pub mesh: Handle<Mesh>,
     pub material: Handle<StandardMaterial>,
 }
