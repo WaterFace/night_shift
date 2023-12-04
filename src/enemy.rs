@@ -3,6 +3,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::{
     character,
+    experience::SpawnExperience,
     health::{DeathEvent, Health},
 };
 
@@ -48,13 +49,18 @@ fn move_enemies(
 
 fn handle_enemy_death(
     mut commands: Commands,
-    query: Query<Entity, With<Enemy>>,
+    query: Query<&Transform, With<Enemy>>,
     mut death_events: EventReader<DeathEvent>,
+    mut spawn_experience: EventWriter<SpawnExperience>,
 ) {
     // TODO: do something fancier, like an animation, play a sound, etc.
     for ev in death_events.read() {
-        if query.contains(ev.entity) {
+        if let Ok(death_pos) = query.get(ev.entity) {
             commands.entity(ev.entity).despawn_recursive();
+            spawn_experience.send(SpawnExperience {
+                amount: 1.0,
+                position: death_pos.translation.truncate(),
+            });
         }
     }
 }

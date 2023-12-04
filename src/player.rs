@@ -1,7 +1,7 @@
 use bevy::{math::vec2, prelude::*};
 use bevy_rapier2d::prelude::*;
 
-use crate::{character, health::Health};
+use crate::{character, experience::ExperienceCounter, health::Health};
 
 #[derive(Debug, Default, Component)]
 pub struct Player;
@@ -11,6 +11,7 @@ pub struct PlayerBundle {
     pub player: Player,
     pub character: character::Character,
     pub health: Health,
+    pub experience_counter: ExperienceCounter,
 
     pub rigid_body: RigidBody,
     pub velocity: Velocity,

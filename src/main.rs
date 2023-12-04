@@ -7,6 +7,7 @@ use health::Health;
 mod character;
 mod devices;
 mod enemy;
+mod experience;
 mod health;
 mod healthbar;
 mod physics;
@@ -26,6 +27,7 @@ fn main() {
             devices::DevicesPlugin,
             health::HealthPlugin,
             healthbar::HealthbarPlugin,
+            experience::ExperiencePlugin,
         ))
         .add_systems(Startup, setup)
         .run();
