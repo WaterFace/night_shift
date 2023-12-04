@@ -11,7 +11,10 @@ mod player;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(LogPlugin {
+            filter: "info,wgpu_core=warn,wgpu_hal=warn,night_shift=debug".into(),
+            level: bevy::log::Level::DEBUG,
+        }))
         .add_plugins((
             physics::PhysicsPlugin,
             character::CharacterPlugin,
