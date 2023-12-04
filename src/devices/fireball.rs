@@ -85,9 +85,6 @@ fn handle_fireball_collisions(
                     // TODO: do something about the warning this generates if the entity had already been despawned
                     commands.entity(fireball_entity).despawn_recursive();
                 }
-
-                // TODO: send event to damage enemy
-                info!("Fireball hit enemy {:?}", enemy_entity);
             }
             _ => {
                 // Do nothing
@@ -111,21 +108,13 @@ fn aim_fireball_launcher(
     };
 
     for (mut launcher, transform) in query.iter_mut() {
-        // let Some(launcher_pos) =
-        //     main_camera.ve(camera_transform, transform.translation)
-        // else {
-        //     debug!("Couldn't get the launcher's position, for some reason");
-        //     continue;
-        // };
         let launcher_pos = transform.translation.truncate();
 
         let Some(cursor_pos) = main_window.cursor_position() else {
-            debug!("Couldn't get the cursor's position, for some reason");
             continue;
         };
         let Some(cursor_pos) = main_camera.viewport_to_world_2d(camera_transform, cursor_pos)
         else {
-            debug!("Couldn't convert the cursor's position to world position, for some reason");
             continue;
         };
 
