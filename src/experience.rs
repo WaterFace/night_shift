@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::player::Player;
+use crate::{healthbar::HealthbarMaterial, player::Player};
 
 #[derive(Component, Debug)]
 pub struct ExperienceCounter {
@@ -55,6 +55,89 @@ impl ExperienceCounter {
     /// Generally increases as `amount` increases, but not linearly
     pub fn orbs_to_spawn(amount: f32) -> u32 {
         u32::max(amount.log2() as u32, 1)
+    }
+
+    /// Returns the ratio between current xp and xp needed for the next level
+    pub fn fraction(&self) -> f32 {
+        self.current / self.to_next_level
+    }
+
+    /// Returns the current level
+    pub fn level(&self) -> u32 {
+        self.level
+    }
+}
+
+#[derive(Resource, Debug)]
+struct ExperienceBarAssets {
+    mesh: Handle<Mesh>,
+    material: HealthbarMaterial,
+}
+
+fn load_experience_bar_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+    let mesh = meshes.add(
+        shape::Quad {
+            size: Vec2::splat(1.0),
+            ..Default::default()
+        }
+        .into(),
+    );
+
+    let material = HealthbarMaterial {
+        filled_color: Color::LIME_GREEN,
+        empty_color: Color::GRAY,
+        fraction: 1.0,
+    };
+
+    commands.insert_resource(ExperienceBarAssets { material, mesh });
+}
+
+#[derive(Component, Debug, Default)]
+struct HasExperienceBar {
+    material: Handle<HealthbarMaterial>,
+}
+
+fn update_experience_bar(
+    query: Query<(&ExperienceCounter, &HasExperienceBar)>,
+    mut materials: ResMut<Assets<HealthbarMaterial>>,
+) {
+    for (counter, bar) in query.iter() {
+        let Some(mat) = materials.get_mut(&bar.material) else {
+            continue;
+        };
+
+        mat.fraction = counter.fraction();
+    }
+}
+
+#[derive(Component, Debug, Default)]
+struct ExperienceBar;
+
+fn setup_experience_bar(
+    mut commands: Commands,
+    query: Query<Entity, Added<ExperienceCounter>>,
+    mut materials: ResMut<Assets<HealthbarMaterial>>,
+    assets: Res<ExperienceBarAssets>,
+) {
+    for player_entity in query.iter() {
+        let material = materials.add(assets.material.clone());
+        commands.entity(player_entity).insert(HasExperienceBar {
+            material: material.clone(),
+        });
+
+        commands.spawn(MaterialNodeBundle::<HealthbarMaterial> {
+            style: Style {
+                left: Val::Percent(30.0),
+                right: Val::Percent(30.0),
+                height: Val::Px(20.0),
+                top: Val::Px(10.0),
+                justify_content: JustifyContent::Center,
+                position_type: PositionType::Absolute,
+                ..Default::default()
+            },
+            material,
+            ..Default::default()
+        });
     }
 }
 
@@ -220,8 +303,19 @@ impl Plugin for ExperiencePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnExperience>()
             .add_event::<CollectExperience>()
-            .add_systems(Startup, load_experience_assets)
-            .add_systems(Update, (handle_spawn_experience, handle_collect_experience))
+            .add_systems(
+                Startup,
+                (load_experience_assets, load_experience_bar_assets),
+            )
+            .add_systems(
+                Update,
+                (
+                    handle_spawn_experience,
+                    handle_collect_experience,
+                    setup_experience_bar,
+                    update_experience_bar,
+                ),
+            )
             .add_systems(FixedUpdate, tick_experience_orbs);
     }
 }

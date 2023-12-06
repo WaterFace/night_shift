@@ -85,6 +85,12 @@ impl Material for HealthbarMaterial {
     }
 }
 
+impl UiMaterial for HealthbarMaterial {
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/healthbar_ui.wgsl".into()
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 struct HealthbarAssets {
     pub mesh: Handle<Mesh>,
@@ -118,6 +124,7 @@ pub struct HealthbarPlugin;
 impl Plugin for HealthbarPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<HealthbarMaterial>::default())
+            .add_plugins(UiMaterialPlugin::<HealthbarMaterial>::default())
             .add_systems(Startup, load_healthbar_assets)
             .add_systems(Update, (setup_healthbars, update_healthbars));
     }
