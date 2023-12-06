@@ -8,7 +8,7 @@ pub struct FireballLauncher {
     pub direction: Vec2,
     pub launch_speed: f32,
     pub fire_delay: f32,
-    pub punch_through: u32,
+    pub punch_through: i32,
 }
 
 impl Default for FireballLauncher {
@@ -37,7 +37,7 @@ fn setup_fireball_launcher(mut commands: Commands, query: Query<Entity, Added<Fi
 pub struct Fireball {
     pub damage: f32,
     pub speed: f32,
-    pub punch_through: u32,
+    pub punch_through: i32,
 }
 
 #[derive(Bundle, Default)]
@@ -82,14 +82,14 @@ fn handle_fireball_collisions(
                     }
                 };
 
-                damage_events.send(DamageEvent {
-                    entity: enemy_entity,
-                    amount: fireball.damage,
-                });
-                debug!("Fireball hit enemy {:?}", enemy_entity);
-
-                if fireball.punch_through > 0 {
+                if fireball.punch_through >= 0 {
                     fireball.punch_through -= 1;
+
+                    damage_events.send(DamageEvent {
+                        entity: enemy_entity,
+                        amount: fireball.damage,
+                    });
+                    debug!("Fireball hit enemy {:?}", enemy_entity);
                 } else {
                     // TODO: do something about the warning this generates if the entity had already been despawned
                     commands.entity(fireball_entity).despawn_recursive();
