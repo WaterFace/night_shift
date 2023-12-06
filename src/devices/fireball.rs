@@ -1,5 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
 use crate::health::DamageEvent;
 
@@ -8,7 +9,8 @@ pub struct FireballLauncher {
     pub direction: Vec2,
     pub launch_speed: f32,
     pub fire_delay: f32,
-    pub punch_through: i32,
+    pub punch_through: f32,
+    pub multishot: f32,
 }
 
 impl Default for FireballLauncher {
@@ -17,7 +19,8 @@ impl Default for FireballLauncher {
             direction: Vec2::X,
             launch_speed: 7.0,
             fire_delay: 0.35,
-            punch_through: 0,
+            punch_through: 10.0,
+            multishot: 0.0,
         }
     }
 }
@@ -25,6 +28,7 @@ impl Default for FireballLauncher {
 #[derive(Debug, Default, Component)]
 struct FireballLauncherState {
     time_since_last_shot: f32,
+    multishot_acc: f32,
 }
 
 fn setup_fireball_launcher(mut commands: Commands, query: Query<Entity, Added<FireballLauncher>>) {
@@ -37,7 +41,7 @@ fn setup_fireball_launcher(mut commands: Commands, query: Query<Entity, Added<Fi
 pub struct Fireball {
     pub damage: f32,
     pub speed: f32,
-    pub punch_through: i32,
+    pub punch_through: f32,
 }
 
 #[derive(Bundle, Default)]
@@ -82,15 +86,17 @@ fn handle_fireball_collisions(
                     }
                 };
 
-                if fireball.punch_through >= 0 {
-                    fireball.punch_through -= 1;
+                if fireball.punch_through >= 0.0 {
+                    fireball.punch_through -= 1.0;
 
                     damage_events.send(DamageEvent {
                         entity: enemy_entity,
                         amount: fireball.damage,
                     });
                     debug!("Fireball hit enemy {:?}", enemy_entity);
-                } else {
+                }
+
+                if fireball.punch_through < 0.0 {
                     // TODO: do something about the warning this generates if the entity had already been despawned
                     commands.entity(fireball_entity).despawn_recursive();
                 }
@@ -148,28 +154,39 @@ fn fireball_launcher(
             state.time_since_last_shot += time.delta_seconds();
         }
 
-        // todo: shoot multiple times if enough time has passed since the last frame
-        // to handle very low fire delays
+        let n_shots = ((state.time_since_last_shot / launcher.fire_delay).floor() as u32).min(3);
 
-        // todo: multishot. accumulate fractions of a shot and spawn multiple projectiles if it's over 1
-        if pressed && state.time_since_last_shot >= launcher.fire_delay {
-            commands.spawn(FireballBundle {
-                fireball: Fireball {
-                    damage: 1.0,
-                    punch_through: launcher.punch_through,
-                    speed: launcher.launch_speed,
+        if pressed && n_shots > 0 {
+            //multishot
+            state.multishot_acc += 1.0 + launcher.multishot;
+            let multishots = state.multishot_acc.floor() as u32;
+            state.multishot_acc -= state.multishot_acc.floor();
+
+            for _ in 0..n_shots * multishots {
+                // TODO: make this configurable, or maybe scale with some stats
+                let spread = rand::thread_rng()
+                    .sample::<f32, rand_distr::StandardNormal>(rand_distr::StandardNormal)
+                    * 0.05_f32;
+                commands.spawn(FireballBundle {
+                    fireball: Fireball {
+                        damage: 1.0,
+                        punch_through: launcher.punch_through,
+                        speed: launcher.launch_speed,
+                        ..Default::default()
+                    },
+                    transform: Transform::from_translation(
+                        transform.translation + launcher.direction.extend(0.0) * LAUNCH_DISTANCE,
+                    ),
+                    velocity: Velocity::linear(
+                        Vec2::from_angle(spread).rotate(launcher.direction * launcher.launch_speed),
+                    ),
+                    mesh: fireball_assets.mesh.clone(),
+                    material: fireball_assets.material.clone(),
+                    collider: Collider::ball(0.05),
+                    active_events: ActiveEvents::COLLISION_EVENTS,
                     ..Default::default()
-                },
-                transform: Transform::from_translation(
-                    transform.translation + launcher.direction.extend(0.0) * LAUNCH_DISTANCE,
-                ),
-                velocity: Velocity::linear(launcher.direction * launcher.launch_speed),
-                mesh: fireball_assets.mesh.clone(),
-                material: fireball_assets.material.clone(),
-                collider: Collider::ball(0.05),
-                active_events: ActiveEvents::COLLISION_EVENTS,
-                ..Default::default()
-            });
+                });
+            }
 
             state.time_since_last_shot = 0.0;
         }
