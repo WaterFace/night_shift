@@ -83,6 +83,7 @@ fn setup(
             health: Health {
                 current: 100.0,
                 maximum: 100.0,
+                dead: false,
             },
             transform: Transform::from_scale(Vec3::splat(0.3)),
             ..Default::default()
@@ -107,6 +108,7 @@ fn setup(
             health: Health {
                 current: 2.0,
                 maximum: 2.0,
+                dead: false,
             },
             ..Default::default()
         });

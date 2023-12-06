@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub struct Health {
     pub current: f32,
     pub maximum: f32,
+    pub dead: bool,
 }
 
 impl Health {
@@ -42,8 +43,9 @@ fn process_damage_events(
 
         health.current = f32::clamp(health.current - ev.amount, 0.0, health.maximum);
 
-        if health.current <= 0.0 {
+        if !health.dead && health.current <= 0.0 {
             deaths.push(DeathEvent { entity: ev.entity });
+            health.dead = true;
         }
     }
 
