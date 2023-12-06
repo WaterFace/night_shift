@@ -70,26 +70,17 @@ impl ExperienceCounter {
 
 #[derive(Resource, Debug)]
 struct ExperienceBarAssets {
-    mesh: Handle<Mesh>,
     material: HealthbarMaterial,
 }
 
-fn load_experience_bar_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    let mesh = meshes.add(
-        shape::Quad {
-            size: Vec2::splat(1.0),
-            ..Default::default()
-        }
-        .into(),
-    );
-
+fn load_experience_bar_assets(mut commands: Commands) {
     let material = HealthbarMaterial {
         filled_color: Color::LIME_GREEN,
         empty_color: Color::GRAY,
         fraction: 1.0,
     };
 
-    commands.insert_resource(ExperienceBarAssets { material, mesh });
+    commands.insert_resource(ExperienceBarAssets { material });
 }
 
 #[derive(Component, Debug, Default)]
