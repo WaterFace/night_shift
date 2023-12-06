@@ -6,7 +6,6 @@ use crate::health::DamageEvent;
 
 #[derive(Debug, Component)]
 pub struct FireballLauncher {
-    pub direction: Vec2,
     pub launch_speed: f32,
     pub fire_delay: f32,
     pub punch_through: f32,
@@ -16,7 +15,6 @@ pub struct FireballLauncher {
 impl Default for FireballLauncher {
     fn default() -> Self {
         FireballLauncher {
-            direction: Vec2::X,
             launch_speed: 7.0,
             fire_delay: 0.35,
             punch_through: 10.0,
@@ -25,10 +23,21 @@ impl Default for FireballLauncher {
     }
 }
 
-#[derive(Debug, Default, Component)]
+#[derive(Debug, Component)]
 struct FireballLauncherState {
+    direction: Vec2,
     time_since_last_shot: f32,
     multishot_acc: f32,
+}
+
+impl Default for FireballLauncherState {
+    fn default() -> Self {
+        FireballLauncherState {
+            direction: Vec2::X,
+            time_since_last_shot: Default::default(),
+            multishot_acc: Default::default(),
+        }
+    }
 }
 
 fn setup_fireball_launcher(mut commands: Commands, query: Query<Entity, Added<FireballLauncher>>) {
@@ -109,7 +118,7 @@ fn handle_fireball_collisions(
 }
 
 fn aim_fireball_launcher(
-    mut query: Query<(&mut FireballLauncher, &Transform)>,
+    mut query: Query<(&mut FireballLauncherState, &Transform)>,
     main_window_query: Query<&Window, With<PrimaryWindow>>,
     main_camera_query: Query<(&Camera, &GlobalTransform)>,
 ) {
@@ -122,7 +131,7 @@ fn aim_fireball_launcher(
         return;
     };
 
-    for (mut launcher, transform) in query.iter_mut() {
+    for (mut launcher_state, transform) in query.iter_mut() {
         let launcher_pos = transform.translation.truncate();
 
         let Some(cursor_pos) = main_window.cursor_position() else {
@@ -135,7 +144,7 @@ fn aim_fireball_launcher(
 
         let dir = (cursor_pos - launcher_pos).normalize_or_zero();
 
-        launcher.direction = dir;
+        launcher_state.direction = dir;
     }
 }
 
@@ -175,10 +184,10 @@ fn fireball_launcher(
                         ..Default::default()
                     },
                     transform: Transform::from_translation(
-                        transform.translation + launcher.direction.extend(0.0) * LAUNCH_DISTANCE,
+                        transform.translation + state.direction.extend(0.0) * LAUNCH_DISTANCE,
                     ),
                     velocity: Velocity::linear(
-                        Vec2::from_angle(spread).rotate(launcher.direction * launcher.launch_speed),
+                        Vec2::from_angle(spread).rotate(state.direction * launcher.launch_speed),
                     ),
                     mesh: fireball_assets.mesh.clone(),
                     material: fireball_assets.material.clone(),
