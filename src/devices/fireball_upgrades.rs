@@ -25,7 +25,7 @@ fn format_fire_delay(buf: &mut String, value: f32) {
 }
 // punch_through: Upgradeable,
 fn punch_through_formula(level: u32) -> f32 {
-    level as f32
+    level as f32 + 1.0
 }
 fn format_punch_through(buf: &mut String, value: f32) {
     use std::fmt::Write;
@@ -47,19 +47,28 @@ fn fireball_launcher_upgrade_menu(
     mut query: Query<(&mut FireballLauncher, &mut ExperienceCounter)>,
     mut next_state: ResMut<NextState<UpgradesMenuState>>,
     mut modifiable_launcher: Local<Option<FireballLauncher>>,
-    mut reserved_strings: Local<[String; 4]>,
+    mut initial_state: Local<Option<FireballLauncher>>,
+    mut reserved_strings: Local<[String; 5]>,
+    mut free_points_local: Local<Option<u32>>,
 ) {
     let ctx = contexts.ctx_mut();
 
-    let Ok((mut launcher, _experience_counter)) = query.get_single_mut() else {
+    let Ok((mut launcher, mut experience_counter)) = query.get_single_mut() else {
         // TODO: if I ever add other devices, this function should only run if fireballs are equipped
         warn!("No fireball launcher found");
         return;
     };
 
+    if free_points_local.is_none() {
+        *free_points_local = Some(experience_counter.upgrade_points());
+    }
+    let free_points = free_points_local.as_mut().unwrap();
+
     if modifiable_launcher.is_none() {
         *modifiable_launcher = Some(launcher.clone());
+        *initial_state = Some(launcher.clone());
     }
+
     let local_launcher = modifiable_launcher.as_mut().expect("Set above");
     for s in reserved_strings.iter_mut() {
         s.clear();
@@ -71,7 +80,16 @@ fn fireball_launcher_upgrade_menu(
         .anchor(Align2::CENTER_CENTER, egui::Vec2::ZERO)
         .collapsible(false)
         .show(&ctx, |ui| {
-            ui.label("Remaining points: 0"); // TODO: hook this up
+            {
+                use std::fmt::Write;
+                write!(
+                    &mut reserved_strings[4],
+                    "Remaining points: {}",
+                    free_points
+                )
+                .unwrap();
+            }
+            ui.label(&reserved_strings[4]);
             ui.separator();
 
             format_launch_speed(
@@ -82,30 +100,42 @@ fn fireball_launcher_upgrade_menu(
                 adjuster(ui, "Launch Speed", &reserved_strings[0]);
             if minus_response.clicked() {
                 let cur_level = local_launcher.launch_speed.points_spent;
-                local_launcher
-                    .launch_speed
-                    .from_formula(cur_level.saturating_sub(1), launch_speed_formula);
+                if cur_level > initial_state.as_ref().unwrap().launch_speed.points_spent {
+                    local_launcher
+                        .launch_speed
+                        .from_formula(cur_level.saturating_sub(1), launch_speed_formula);
+                    *free_points += 1;
+                }
             }
             if plus_response.clicked() {
                 let cur_level = local_launcher.launch_speed.points_spent;
-                local_launcher
-                    .launch_speed
-                    .from_formula(cur_level.saturating_add(1), launch_speed_formula);
+                if *free_points > 0 {
+                    local_launcher
+                        .launch_speed
+                        .from_formula(cur_level.saturating_add(1), launch_speed_formula);
+                    *free_points -= 1;
+                }
             }
 
             format_fire_delay(&mut reserved_strings[1], local_launcher.fire_delay.value());
             let (minus_response, plus_response) = adjuster(ui, "Fire Rate", &reserved_strings[1]);
             if minus_response.clicked() {
                 let cur_level = local_launcher.fire_delay.points_spent;
-                local_launcher
-                    .fire_delay
-                    .from_formula(cur_level.saturating_sub(1), fire_delay_formula);
+                if cur_level > initial_state.as_ref().unwrap().fire_delay.points_spent {
+                    local_launcher
+                        .fire_delay
+                        .from_formula(cur_level.saturating_sub(1), fire_delay_formula);
+                    *free_points += 1;
+                }
             }
             if plus_response.clicked() {
                 let cur_level = local_launcher.fire_delay.points_spent;
-                local_launcher
-                    .fire_delay
-                    .from_formula(cur_level.saturating_add(1), fire_delay_formula);
+                if *free_points > 0 {
+                    local_launcher
+                        .fire_delay
+                        .from_formula(cur_level.saturating_add(1), fire_delay_formula);
+                    *free_points -= 1;
+                }
             }
 
             format_punch_through(
@@ -116,30 +146,42 @@ fn fireball_launcher_upgrade_menu(
                 adjuster(ui, "Punchthrough", &reserved_strings[2]);
             if minus_response.clicked() {
                 let cur_level = local_launcher.punch_through.points_spent;
-                local_launcher
-                    .punch_through
-                    .from_formula(cur_level.saturating_sub(1), punch_through_formula);
+                if cur_level > initial_state.as_ref().unwrap().punch_through.points_spent {
+                    local_launcher
+                        .punch_through
+                        .from_formula(cur_level.saturating_sub(1), punch_through_formula);
+                    *free_points += 1;
+                }
             }
             if plus_response.clicked() {
                 let cur_level = local_launcher.punch_through.points_spent;
-                local_launcher
-                    .punch_through
-                    .from_formula(cur_level.saturating_add(1), punch_through_formula);
+                if *free_points > 0 {
+                    local_launcher
+                        .punch_through
+                        .from_formula(cur_level.saturating_add(1), punch_through_formula);
+                    *free_points -= 1;
+                }
             }
 
             format_multishot(&mut reserved_strings[3], local_launcher.multishot.value());
             let (minus_response, plus_response) = adjuster(ui, "Multishot", &reserved_strings[3]);
             if minus_response.clicked() {
                 let cur_level = local_launcher.multishot.points_spent;
-                local_launcher
-                    .multishot
-                    .from_formula(cur_level.saturating_sub(1), multishot_formula);
+                if cur_level > initial_state.as_ref().unwrap().multishot.points_spent {
+                    local_launcher
+                        .multishot
+                        .from_formula(cur_level.saturating_sub(1), multishot_formula);
+                    *free_points += 1;
+                }
             }
             if plus_response.clicked() {
                 let cur_level = local_launcher.multishot.points_spent;
-                local_launcher
-                    .multishot
-                    .from_formula(cur_level.saturating_add(1), multishot_formula);
+                if *free_points > 0 {
+                    local_launcher
+                        .multishot
+                        .from_formula(cur_level.saturating_add(1), multishot_formula);
+                    *free_points -= 1;
+                }
             }
 
             return ui.add(square_button("Confirm"));
@@ -159,6 +201,9 @@ fn fireball_launcher_upgrade_menu(
             if confirm.clicked() {
                 *launcher = modifiable_launcher.take().unwrap();
                 next_state.set(UpgradesMenuState::Closed);
+                let spent = experience_counter.upgrade_points() - *free_points;
+                experience_counter.spend_points(spent);
+                let _ = free_points_local.take();
             }
         }
     }

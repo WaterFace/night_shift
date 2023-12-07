@@ -8,6 +8,7 @@ use crate::{healthbar::HealthbarMaterial, player::Player};
 #[derive(Component, Debug)]
 pub struct ExperienceCounter {
     level: u32,
+    upgrade_points: u32,
     current: f32,
     to_next_level: f32,
 }
@@ -16,6 +17,7 @@ impl Default for ExperienceCounter {
     fn default() -> Self {
         ExperienceCounter {
             level: 0,
+            upgrade_points: 0,
             current: 0.0,
             to_next_level: ExperienceCounter::experience_required(0),
         }
@@ -41,6 +43,7 @@ impl ExperienceCounter {
         // TODO: cap level at 100 or something
 
         self.level += levels_gained;
+        self.upgrade_points += levels_gained;
         levels_gained
     }
 
@@ -62,9 +65,24 @@ impl ExperienceCounter {
         self.current / self.to_next_level
     }
 
+    #[allow(unused)]
     /// Returns the current level
     pub fn level(&self) -> u32 {
         self.level
+    }
+
+    /// Returns the current number of upgrade points available to be spent
+    pub fn upgrade_points(&self) -> u32 {
+        self.upgrade_points
+    }
+
+    /// Removes the specified number of upgrade points
+    pub fn spend_points(&mut self, spent: u32) {
+        assert!(
+            self.upgrade_points >= spent,
+            "Tried to spend more upgrade points than available!"
+        );
+        self.upgrade_points -= spent
     }
 }
 
