@@ -12,6 +12,7 @@ mod health;
 mod healthbar;
 mod physics;
 mod player;
+mod ui;
 
 fn main() {
     App::new()
@@ -28,6 +29,7 @@ fn main() {
             health::HealthPlugin,
             healthbar::HealthbarPlugin,
             experience::ExperiencePlugin,
+            ui::UiPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
