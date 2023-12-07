@@ -4,21 +4,23 @@ use rand::Rng;
 
 use crate::health::DamageEvent;
 
-#[derive(Debug, Component)]
+use super::Upgradeable;
+
+#[derive(Debug, Component, Clone)]
 pub struct FireballLauncher {
-    pub launch_speed: f32,
-    pub fire_delay: f32,
-    pub punch_through: f32,
-    pub multishot: f32,
+    pub launch_speed: Upgradeable,
+    pub fire_delay: Upgradeable,
+    pub punch_through: Upgradeable,
+    pub multishot: Upgradeable,
 }
 
 impl Default for FireballLauncher {
     fn default() -> Self {
         FireballLauncher {
-            launch_speed: 7.0,
-            fire_delay: 0.35,
-            punch_through: 10.0,
-            multishot: 0.0,
+            launch_speed: Upgradeable::new(7.0),
+            fire_delay: Upgradeable::new(0.35),
+            punch_through: Upgradeable::new(1.0),
+            multishot: Upgradeable::new(1.0),
         }
     }
 }
@@ -95,7 +97,7 @@ fn handle_fireball_collisions(
                     }
                 };
 
-                if fireball.punch_through >= 0.0 {
+                if fireball.punch_through >= 1.0 {
                     fireball.punch_through -= 1.0;
 
                     damage_events.send(DamageEvent {
@@ -105,7 +107,7 @@ fn handle_fireball_collisions(
                     debug!("Fireball hit enemy {:?}", enemy_entity);
                 }
 
-                if fireball.punch_through < 0.0 {
+                if fireball.punch_through < 1.0 {
                     // TODO: do something about the warning this generates if the entity had already been despawned
                     commands.entity(fireball_entity).despawn_recursive();
                 }
@@ -159,15 +161,16 @@ fn fireball_launcher(
     let pressed = input.pressed(MouseButton::Left);
 
     for (transform, launcher, mut state) in query.iter_mut() {
-        if state.time_since_last_shot < launcher.fire_delay {
+        if state.time_since_last_shot < launcher.fire_delay.value() {
             state.time_since_last_shot += time.delta_seconds();
         }
 
-        let n_shots = ((state.time_since_last_shot / launcher.fire_delay).floor() as u32).min(3);
+        let n_shots =
+            ((state.time_since_last_shot / launcher.fire_delay.value()).floor() as u32).min(3);
 
         if pressed && n_shots > 0 {
             //multishot
-            state.multishot_acc += 1.0 + launcher.multishot;
+            state.multishot_acc += launcher.multishot.value();
             let multishots = state.multishot_acc.floor() as u32;
             state.multishot_acc -= state.multishot_acc.floor();
 
@@ -179,15 +182,16 @@ fn fireball_launcher(
                 commands.spawn(FireballBundle {
                     fireball: Fireball {
                         damage: 1.0,
-                        punch_through: launcher.punch_through,
-                        speed: launcher.launch_speed,
+                        punch_through: launcher.punch_through.value(),
+                        speed: launcher.launch_speed.value(),
                         ..Default::default()
                     },
                     transform: Transform::from_translation(
                         transform.translation + state.direction.extend(0.0) * LAUNCH_DISTANCE,
                     ),
                     velocity: Velocity::linear(
-                        Vec2::from_angle(spread).rotate(state.direction * launcher.launch_speed),
+                        Vec2::from_angle(spread)
+                            .rotate(state.direction * launcher.launch_speed.value()),
                     ),
                     mesh: fireball_assets.mesh.clone(),
                     material: fireball_assets.material.clone(),
