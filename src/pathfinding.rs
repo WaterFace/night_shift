@@ -4,6 +4,7 @@ use bevy::{prelude::*, transform::TransformSystem, utils::HashMap};
 use bevy_rapier2d::prelude::*;
 
 use crate::{
+    debug::DebugOverlay,
     map::{self, PathNode, Region},
     physics,
     player::Player,
@@ -240,25 +241,10 @@ fn find_player_region(
 
 fn debug_pathfinding(
     pathfinder: Res<Pathfinder>,
-    input: Res<Input<KeyCode>>,
-    player_query: Query<&Transform, With<Player>>,
     mut gizmos: Gizmos,
-    mut enabled: Local<bool>,
-    mut marked_spot: Local<Option<Vec2>>,
+    debug_overlay: Res<DebugOverlay>,
 ) {
-    if input.just_pressed(KeyCode::Backslash) {
-        *enabled = !*enabled;
-    }
-
-    let Ok(player_transform) = player_query.get_single() else {
-        return;
-    };
-
-    if input.just_pressed(KeyCode::Space) {
-        *marked_spot = Some(player_transform.translation.truncate());
-    }
-
-    if *enabled {
+    if debug_overlay.enabled {
         for (from, tos) in pathfinder.visible.iter() {
             for to in tos {
                 let node1 = pathfinder.nodes[*from];
@@ -267,34 +253,6 @@ fn debug_pathfinding(
                 if node1.x >= node2.x {
                     gizmos.line_2d(node1, node2, Color::ORANGE);
                 }
-            }
-        }
-
-        if let Some(marked_spot) = *marked_spot {
-            let start = pathfinder.closest_node(marked_spot);
-            let goal = pathfinder.closest_node(player_transform.translation.truncate());
-            if pathfinder.node_to_region[&start] == pathfinder.node_to_region[&goal] {
-                gizmos.line_2d(
-                    marked_spot,
-                    player_transform.translation.truncate(),
-                    Color::LIME_GREEN,
-                );
-            } else {
-                let (_, path) = &pathfinder.paths[&(start, goal)];
-
-                for window in path.windows(2) {
-                    let (a, b) = (window[0], window[1]);
-                    let node_a = pathfinder.nodes[a];
-                    let node_b = pathfinder.nodes[b];
-
-                    gizmos.line_2d(node_a, node_b, Color::LIME_GREEN);
-                }
-                gizmos.line_2d(marked_spot, pathfinder.nodes[path[0]], Color::LIME_GREEN);
-                gizmos.line_2d(
-                    pathfinder.nodes[path[path.len() - 1]],
-                    player_transform.translation.truncate(),
-                    Color::LIME_GREEN,
-                );
             }
         }
     }

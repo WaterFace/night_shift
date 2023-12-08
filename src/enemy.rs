@@ -5,6 +5,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::{
     character,
+    debug::DebugOverlay,
     experience::SpawnExperience,
     health::{DeathEvent, Health},
     pathfinding::Pathfinder,
@@ -48,6 +49,8 @@ fn move_enemies(
     mut enemy_query: Query<(Entity, &mut Enemy, &Transform, &mut character::Character)>,
     pathfinder: Res<Pathfinder>,
     rapier_context: Res<RapierContext>,
+    debug_overlay: Res<DebugOverlay>,
+    mut gizmos: Gizmos,
 ) {
     let Ok(player_transform) = player_query.get_single() else {
         return;
@@ -94,6 +97,10 @@ fn move_enemies(
         }
         if let Some(target) = enemy.target {
             let dir = (target - enemy_pos).normalize_or_zero();
+
+            if debug_overlay.enabled {
+                gizmos.line_2d(enemy_pos, target, Color::GREEN);
+            }
 
             character.desired_direction = dir;
         } else {

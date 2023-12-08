@@ -5,7 +5,7 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::*;
 
-use crate::physics;
+use crate::{debug::DebugOverlay, physics};
 
 pub struct MapPlugin;
 
@@ -249,14 +249,9 @@ fn debug_path_nodes_and_regions(
     mut gizmos: Gizmos,
     query: Query<(&Transform, &PathNode)>,
     region_query: Query<&Region, Without<PathNode>>,
-    input: Res<Input<KeyCode>>,
-    mut enabled: Local<bool>,
+    debug_overlay: Res<DebugOverlay>,
 ) {
-    if input.just_pressed(KeyCode::Backslash) {
-        *enabled = !*enabled;
-    }
-
-    if *enabled {
+    if debug_overlay.enabled {
         for (t, _node) in query.iter() {
             gizmos.circle_2d(t.translation.truncate(), 0.1, Color::RED);
         }

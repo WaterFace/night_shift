@@ -2,6 +2,7 @@ use bevy::{log::LogPlugin, prelude::*};
 
 mod camera;
 mod character;
+mod debug;
 mod devices;
 mod enemy;
 mod experience;
@@ -32,6 +33,7 @@ fn main() {
             map::MapPlugin,
             camera::CameraPlugin,
             pathfinding::PathfindingPlugin,
+            debug::DebugPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
