@@ -1,6 +1,11 @@
-use bevy::{math::vec2, prelude::*, render::render_resource::AsBindGroup};
+use bevy::{
+    math::{vec2, vec3},
+    prelude::*,
+    render::render_resource::AsBindGroup,
+    sprite::{Material2d, Material2dPlugin, Mesh2dHandle},
+};
 
-use crate::health::Health;
+use crate::{enemy::Enemy, health::Health, physics};
 
 #[derive(Debug, Default, Component)]
 struct Healthbar;
@@ -16,7 +21,7 @@ struct HealthbarBundle {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
 
-    pub mesh: Handle<Mesh>,
+    pub mesh: Mesh2dHandle,
     pub material: Handle<HealthbarMaterial>,
 }
 
@@ -41,19 +46,27 @@ fn update_healthbars(
 
 fn setup_healthbars(
     mut commands: Commands,
-    query: Query<Entity, Added<Health>>,
+    query: Query<(Entity, Option<&Enemy>), Added<Health>>,
     healthbar_assets: Res<HealthbarAssets>,
     mut rolling_offset: Local<f32>,
     mut materials: ResMut<Assets<HealthbarMaterial>>,
 ) {
-    for e in query.iter() {
+    for (e, enemy) in query.iter() {
         let mat = materials.add(healthbar_assets.default_mat.clone());
         commands
             .spawn(HealthbarBundle {
                 mesh: healthbar_assets.mesh.clone(),
                 material: mat.clone(),
                 // TODO: automatically offset the healthbar on the y-axis based on the base object's scale
-                transform: Transform::from_xyz(0.0, 0.6, 1.0 + *rolling_offset),
+                transform: Transform::from_xyz(
+                    0.0,
+                    enemy.map(|e| e.healthbar_offset).unwrap_or(0.6) / physics::PHYSICS_SCALE,
+                    1.0 + *rolling_offset,
+                )
+                .with_scale(
+                    vec3(enemy.map(|e| e.healthbar_width).unwrap_or(1.0), 1.0, 1.0)
+                        / physics::PHYSICS_SCALE,
+                ),
                 ..Default::default()
             })
             .set_parent(e);
@@ -85,6 +98,12 @@ impl Material for HealthbarMaterial {
     }
 }
 
+impl Material2d for HealthbarMaterial {
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/healthbar.wgsl".into()
+    }
+}
+
 impl UiMaterial for HealthbarMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/healthbar_ui.wgsl".into()
@@ -93,18 +112,20 @@ impl UiMaterial for HealthbarMaterial {
 
 #[derive(Resource, Debug, Default)]
 struct HealthbarAssets {
-    pub mesh: Handle<Mesh>,
+    pub mesh: Mesh2dHandle,
     pub default_mat: HealthbarMaterial,
 }
 
 fn load_healthbar_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    let mesh = meshes.add(
-        shape::Quad {
-            size: vec2(1.0, 0.1),
-            ..Default::default()
-        }
-        .into(),
-    );
+    let mesh = meshes
+        .add(
+            shape::Quad {
+                size: vec2(1.0, 0.1),
+                ..Default::default()
+            }
+            .into(),
+        )
+        .into();
 
     let mat = HealthbarMaterial {
         fraction: 1.0,
@@ -123,9 +144,12 @@ pub struct HealthbarPlugin;
 
 impl Plugin for HealthbarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<HealthbarMaterial>::default())
-            .add_plugins(UiMaterialPlugin::<HealthbarMaterial>::default())
-            .add_systems(Startup, load_healthbar_assets)
-            .add_systems(Update, (setup_healthbars, update_healthbars));
+        app.add_plugins((
+            MaterialPlugin::<HealthbarMaterial>::default(),
+            UiMaterialPlugin::<HealthbarMaterial>::default(),
+            Material2dPlugin::<HealthbarMaterial>::default(),
+        ))
+        .add_systems(Startup, load_healthbar_assets)
+        .add_systems(Update, (setup_healthbars, update_healthbars));
     }
 }

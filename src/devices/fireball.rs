@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-use crate::health::DamageEvent;
+use crate::{health::DamageEvent, physics};
 
 use super::Upgradeable;
 
@@ -58,19 +58,22 @@ pub struct Fireball {
 #[derive(Bundle, Default)]
 struct FireballBundle {
     pub fireball: Fireball,
+
     pub rigid_body: RigidBody,
     pub velocity: Velocity,
     pub collider: Collider,
     pub sensor: Sensor,
     pub active_events: ActiveEvents,
     pub locked_axes: LockedAxes,
+
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub mesh: Handle<Mesh>,
-    pub material: Handle<StandardMaterial>,
+
+    pub sprite: Sprite,
+    pub texture: Handle<Image>,
 }
 
 fn handle_fireball_collisions(
@@ -179,6 +182,8 @@ fn fireball_launcher(
                 let spread = rand::thread_rng()
                     .sample::<f32, rand_distr::StandardNormal>(rand_distr::StandardNormal)
                     * 0.05_f32;
+                let velocity = Vec2::from_angle(spread)
+                    .rotate(state.direction * launcher.launch_speed.value());
                 commands.spawn(FireballBundle {
                     fireball: Fireball {
                         damage: 1.0,
@@ -187,15 +192,13 @@ fn fireball_launcher(
                         ..Default::default()
                     },
                     transform: Transform::from_translation(
-                        transform.translation + state.direction.extend(0.0) * LAUNCH_DISTANCE,
-                    ),
-                    velocity: Velocity::linear(
-                        Vec2::from_angle(spread)
-                            .rotate(state.direction * launcher.launch_speed.value()),
-                    ),
-                    mesh: fireball_assets.mesh.clone(),
-                    material: fireball_assets.material.clone(),
-                    collider: Collider::ball(0.05),
+                        transform.translation + state.direction.extend(1.3) * LAUNCH_DISTANCE,
+                    )
+                    .with_scale(Vec3::splat(physics::PHYSICS_SCALE) * 0.5)
+                    .with_rotation(Quat::from_rotation_z(Vec2::X.angle_between(velocity))),
+                    velocity: Velocity::linear(velocity),
+                    texture: fireball_assets.texture.clone(),
+                    collider: Collider::ball(0.2 / physics::PHYSICS_SCALE),
                     active_events: ActiveEvents::COLLISION_EVENTS,
                     ..Default::default()
                 });
@@ -208,25 +211,12 @@ fn fireball_launcher(
 
 #[derive(Resource, Debug, Default)]
 struct FireballAssets {
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    texture: Handle<Image>,
 }
 
-fn load_fireball_assets(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mesh = meshes.add(
-        shape::Circle {
-            radius: 0.05,
-            ..Default::default()
-        }
-        .into(),
-    );
-    let material = materials.add(Color::RED.into());
-
-    commands.insert_resource(FireballAssets { material, mesh });
+fn load_fireball_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let texture = asset_server.load("textures/fireball.png");
+    commands.insert_resource(FireballAssets { texture });
 }
 
 pub struct FireballLauncherPlugin;

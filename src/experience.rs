@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{healthbar::HealthbarMaterial, player::Player};
+use crate::{healthbar::HealthbarMaterial, physics, player::Player};
 
 #[derive(Component, Debug)]
 pub struct ExperienceCounter {
@@ -175,8 +175,8 @@ struct ExperienceOrbBundle {
     transform: Transform,
     global_transform: GlobalTransform,
 
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    sprite: Sprite,
+    texture: Handle<Image>,
 }
 
 fn tick_experience_orbs(
@@ -244,8 +244,7 @@ fn handle_spawn_experience(
             let initial_velocity = Vec2::from_angle(*previous_angle);
 
             commands.spawn(ExperienceOrbBundle {
-                mesh: experience_orb_assets.mesh.clone(),
-                material: experience_orb_assets.material.clone(),
+                texture: experience_orb_assets.texture.clone(),
                 experience_orb: ExperienceOrb {
                     amount: amount_per_orb,
                     max_turn_rate: PI,
@@ -254,8 +253,8 @@ fn handle_spawn_experience(
                 },
                 velocity: Velocity::linear(initial_velocity * 15.0),
                 rigid_body: RigidBody::KinematicVelocityBased,
-                transform: Transform::from_translation(position.extend(-1.0))
-                    .with_scale(Vec3::splat(0.05)),
+                transform: Transform::from_translation(position.extend(1.5))
+                    .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
                 ..Default::default()
             });
         }
@@ -284,26 +283,18 @@ fn handle_collect_experience(
 
 #[derive(Resource, Debug, Default)]
 struct ExperienceOrbAssets {
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    texture: Handle<Image>,
 }
 
 fn load_experience_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
-    let mesh = meshes.add(
-        shape::Circle {
-            radius: 1.0,
-            vertices: 8,
-        }
-        .into(),
-    );
+    let texture = asset_server.load("textures/experience orb.png");
 
-    let material = materials.add(Color::LIME_GREEN.into());
-
-    commands.insert_resource(ExperienceOrbAssets { material, mesh });
+    commands.insert_resource(ExperienceOrbAssets { texture });
 }
 
 pub struct ExperiencePlugin;
