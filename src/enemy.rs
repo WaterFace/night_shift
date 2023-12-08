@@ -190,7 +190,7 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
             texture: enemy_assets.big_ghost_texture.clone(),
             transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
                 .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
-            collider: Collider::ball(1.2 / physics::PHYSICS_SCALE),
+            collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
             collision_groups: CollisionGroups::new(
                 physics::ENEMY_GROUP,
                 physics::ENEMY_GROUP
