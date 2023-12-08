@@ -286,12 +286,7 @@ struct ExperienceOrbAssets {
     texture: Handle<Image>,
 }
 
-fn load_experience_assets(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
-) {
+fn load_experience_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let texture = asset_server.load("textures/experience orb.png");
 
     commands.insert_resource(ExperienceOrbAssets { texture });
