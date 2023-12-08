@@ -61,12 +61,6 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn cleanup_player(mut commands: Commands, query: Query<Entity, With<Player>>) {
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
-    }
-}
-
 fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     commands
         .spawn(PlayerBundle {
