@@ -10,12 +10,14 @@ pub struct Character {
 }
 
 fn move_character(mut query: Query<(&Character, &mut Velocity)>, time: Res<Time>) {
+    let dt = time.delta_seconds();
     for (character, mut velocity) in query.iter_mut() {
         let vel = velocity.linvel;
+
         let desired_velocity = character.desired_direction * character.max_speed;
         let diff = desired_velocity - vel;
 
-        velocity.linvel += diff * character.acceleration * time.delta_seconds();
+        velocity.linvel += diff * character.acceleration * dt;
     }
 }
 
