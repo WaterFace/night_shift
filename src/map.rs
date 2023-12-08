@@ -34,6 +34,7 @@ struct WallBundle {
     transform: Transform,
     global_transform: GlobalTransform,
     collider: Collider,
+    collision_groups: CollisionGroups,
 }
 
 impl WallBundle {
@@ -53,6 +54,7 @@ impl WallBundle {
                 size.x / 2.0 * physics::PHYSICS_SCALE * MAP_SCALE,
                 size.y / 2.0 * physics::PHYSICS_SCALE * MAP_SCALE,
             ),
+            collision_groups: CollisionGroups::new(physics::WALL_GROUP, Group::all()),
             global_transform: Default::default(),
         }
     }
