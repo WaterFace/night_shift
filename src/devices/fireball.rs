@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-use crate::{health::DamageEvent, physics};
+use crate::{enemy::Enemy, health::DamageEvent, map::Wall, physics};
 
 use super::Upgradeable;
 
@@ -78,40 +78,48 @@ struct FireballBundle {
 
 fn handle_fireball_collisions(
     mut commands: Commands,
-    enemy_query: Query<Entity, With<crate::enemy::Enemy>>,
     mut fireball_query: Query<(Entity, &mut Fireball), Without<crate::enemy::Enemy>>,
+    other_query: Query<(Entity, Option<&Enemy>, Option<&Wall>)>,
     mut collision_events: EventReader<CollisionEvent>,
     mut damage_events: EventWriter<DamageEvent>,
 ) {
     for ev in collision_events.read() {
         match ev {
             CollisionEvent::Started(e1, e2, _) => {
-                let ((fireball_entity, mut fireball), enemy_entity) = {
-                    if let (Ok(fireball), Ok(enemy_entity)) =
-                        (fireball_query.get_mut(*e1), enemy_query.get(*e2))
+                let ((fireball_entity, mut fireball), (other_entity, enemy, wall)) = {
+                    if let (Ok(fireball), Ok(other)) =
+                        (fireball_query.get_mut(*e1), other_query.get(*e2))
                     {
-                        (fireball, enemy_entity)
-                    } else if let (Ok(fireball), Ok(enemy_entity)) =
-                        (fireball_query.get_mut(*e2), enemy_query.get(*e1))
+                        (fireball, other)
+                    } else if let (Ok(fireball), Ok(other)) =
+                        (fireball_query.get_mut(*e2), other_query.get(*e1))
                     {
-                        (fireball, enemy_entity)
+                        (fireball, other)
                     } else {
                         continue;
                     }
                 };
 
-                if fireball.punch_through >= 1.0 {
-                    fireball.punch_through -= 1.0;
+                if let Some(_enemy) = enemy {
+                    // If the thing it hit is an enemy:
+                    if fireball.punch_through >= 1.0 {
+                        fireball.punch_through -= 1.0;
 
-                    damage_events.send(DamageEvent {
-                        entity: enemy_entity,
-                        amount: fireball.damage,
-                    });
-                    debug!("Fireball hit enemy {:?}", enemy_entity);
+                        damage_events.send(DamageEvent {
+                            entity: other_entity,
+                            amount: fireball.damage,
+                        });
+                        debug!("Fireball hit enemy {:?}", other_entity);
+                    }
+
+                    if fireball.punch_through < 1.0 {
+                        // TODO: do something about the warning this generates if the entity had already been despawned
+                        commands.entity(fireball_entity).despawn_recursive();
+                    }
                 }
 
-                if fireball.punch_through < 1.0 {
-                    // TODO: do something about the warning this generates if the entity had already been despawned
+                if let Some(_wall) = wall {
+                    // If the thing it hit is a wall:
                     commands.entity(fireball_entity).despawn_recursive();
                 }
             }

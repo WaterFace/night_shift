@@ -27,6 +27,7 @@ pub struct EnemyBundle {
     pub velocity: Velocity,
     pub collider: Collider,
     pub locked_axes: LockedAxes,
+    pub collision_groups: CollisionGroups,
 
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -97,6 +98,13 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
             transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
                 .with_scale(Vec3::splat(0.4 * physics::PHYSICS_SCALE)),
             collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
+            collision_groups: CollisionGroups::new(
+                physics::ENEMY_GROUP,
+                physics::ENEMY_GROUP
+                    | physics::WALL_GROUP
+                    | physics::PLAYER_GROUP
+                    | physics::PROJECTILE_GROUP,
+            ),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             character: character::Character {
                 acceleration: 5.0,
@@ -124,6 +132,13 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
             transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
                 .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
             collider: Collider::ball(1.2 / physics::PHYSICS_SCALE),
+            collision_groups: CollisionGroups::new(
+                physics::ENEMY_GROUP,
+                physics::ENEMY_GROUP
+                    | physics::WALL_GROUP
+                    | physics::PLAYER_GROUP
+                    | physics::PROJECTILE_GROUP,
+            ),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             character: character::Character {
                 acceleration: 2.0,
