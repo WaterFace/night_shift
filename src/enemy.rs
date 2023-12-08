@@ -30,6 +30,7 @@ pub struct EnemyBundle {
     pub collider: Collider,
     pub locked_axes: LockedAxes,
     pub collision_groups: CollisionGroups,
+    pub friction: Friction,
 
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -167,6 +168,10 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
                 healthbar_offset: 0.6,
                 healthbar_width: 1.0,
                 ..Default::default()
+            },
+            friction: Friction {
+                coefficient: 0.01,
+                combine_rule: CoefficientCombineRule::Min,
             },
             ..Default::default()
         });
