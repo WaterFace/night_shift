@@ -11,16 +11,16 @@ use crate::{
 
 #[derive(Resource, Debug)]
 pub struct Pathfinder {
-    nodes: Vec<Vec2>,
-    visible: HashMap<usize, Vec<usize>>,
-    distance: HashMap<(usize, usize), f32>,
-    regions: Vec<map::Region>,
-    region_to_nodes: HashMap<usize, Vec<usize>>,
-    node_to_region: HashMap<usize, usize>,
-    collision_groups: CollisionGroups,
-    player_region: Option<usize>,
+    pub nodes: Vec<Vec2>,
+    pub visible: HashMap<usize, Vec<usize>>,
+    pub distance: HashMap<(usize, usize), f32>,
+    pub regions: Vec<map::Region>,
+    pub region_to_nodes: HashMap<usize, Vec<usize>>,
+    pub node_to_region: HashMap<usize, usize>,
+    pub collision_groups: CollisionGroups,
+    pub player_region: Option<usize>,
     /// Stores the shortest paths between nodes as sequences of nodes to follow
-    paths: HashMap<(usize, usize), (f32, Vec<usize>)>,
+    pub paths: HashMap<(usize, usize), (f32, Vec<usize>)>,
 }
 
 impl Default for Pathfinder {
@@ -137,7 +137,14 @@ impl Pathfinder {
         }
     }
 
-    fn closest_node(&self, point: Vec2) -> usize {
+    pub fn get_path(&self, start_node: usize, goal_node: usize) -> &[usize] {
+        match self.paths.get(&(start_node, goal_node)) {
+            Some((_, path)) => path,
+            None => &[],
+        }
+    }
+
+    pub fn closest_node(&self, point: Vec2) -> usize {
         match self.get_region_index(point) {
             Some(region_idx) => {
                 let mut shortest = f32::INFINITY;
@@ -181,6 +188,14 @@ impl Pathfinder {
             None => None,
             Some(i) => Some(&self.regions[i]),
         }
+    }
+
+    pub fn nodes_in_player_region(&self) -> &[usize] {
+        let Some(player_region) = self.player_region else {
+            return &[];
+        };
+
+        return &self.region_to_nodes[&player_region];
     }
 }
 

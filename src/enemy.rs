@@ -7,6 +7,7 @@ use crate::{
     character,
     experience::SpawnExperience,
     health::{DeathEvent, Health},
+    pathfinding::Pathfinder,
     physics,
 };
 
@@ -15,6 +16,7 @@ pub struct Enemy {
     pub experience_dropped: f32,
     pub healthbar_offset: f32,
     pub healthbar_width: f32,
+    pub target: Option<Vec2>,
 }
 
 #[derive(Bundle, Default)]
@@ -42,16 +44,60 @@ pub struct EnemyBundle {
 
 fn move_enemies(
     player_query: Query<&Transform, With<crate::player::Player>>,
-    mut enemy_query: Query<(&Enemy, &Transform, &mut character::Character)>,
+    mut enemy_query: Query<(Entity, &mut Enemy, &Transform, &mut character::Character)>,
+    pathfinder: Res<Pathfinder>,
+    rapier_context: Res<RapierContext>,
 ) {
     let Ok(player_transform) = player_query.get_single() else {
         return;
     };
+    let player_pos = player_transform.translation.truncate();
 
-    for (_enemy, transform, mut character) in enemy_query.iter_mut() {
-        let dir = (player_transform.translation - transform.translation).normalize_or_zero();
+    let nodes = pathfinder.nodes_in_player_region();
+    let query_filter = QueryFilter::new().groups(CollisionGroups::new(
+        physics::WALL_GROUP,
+        physics::WALL_GROUP,
+    ));
 
-        character.desired_direction = dir.truncate();
+    for (enemy_entity, mut enemy, transform, mut character) in enemy_query.iter_mut() {
+        let enemy_pos = transform.translation.truncate();
+        if rapier_context
+            .cast_ray(enemy_pos, player_pos - enemy_pos, 1.0, true, query_filter)
+            .is_none()
+        {
+            // This enemy can see the player directly, no need to pathfind
+            enemy.target = Some(player_pos);
+        } else {
+            // The straight-line path is obstructed by a wall, pathfind around it
+            if nodes.is_empty() {
+                // The pathfinder doesn't know where the player is, give up
+                enemy.target = None;
+            } else {
+                // Pick one of the nodes near the player in an effectively random but consistent way
+                let goal_node = nodes[enemy_entity.index() as usize % nodes.len()];
+                let start_node = pathfinder.closest_node(enemy_pos);
+
+                let path = pathfinder.get_path(start_node, goal_node);
+                for node in path.iter().rev() {
+                    let node = pathfinder.nodes[*node];
+                    if rapier_context
+                        .cast_ray(enemy_pos, node - enemy_pos, 1.0, true, query_filter)
+                        .is_none()
+                    {
+                        enemy.target = Some(node);
+                        break;
+                    }
+                    enemy.target = None;
+                }
+            }
+        }
+        if let Some(target) = enemy.target {
+            let dir = (target - enemy_pos).normalize_or_zero();
+
+            character.desired_direction = dir;
+        } else {
+            character.desired_direction = Vec2::ZERO;
+        }
     }
 }
 
@@ -90,7 +136,7 @@ fn load_enemy_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
-    const ENEMIES_TO_SPAWN: u32 = 0;
+    const ENEMIES_TO_SPAWN: u32 = 20;
     for i in 0..ENEMIES_TO_SPAWN {
         let t = (i as f32 / ENEMIES_TO_SPAWN as f32) * 2.0 * PI;
         commands.spawn(EnemyBundle {
@@ -120,6 +166,7 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
                 experience_dropped: 1.0,
                 healthbar_offset: 0.6,
                 healthbar_width: 1.0,
+                ..Default::default()
             },
             ..Default::default()
         });
@@ -154,6 +201,7 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
                 experience_dropped: 10.0,
                 healthbar_offset: 1.2,
                 healthbar_width: 3.0,
+                ..Default::default()
             },
             ..Default::default()
         });
