@@ -1,5 +1,6 @@
 use bevy::{log::LogPlugin, prelude::*, render::camera::ScalingMode};
 
+mod camera;
 mod character;
 mod devices;
 mod enemy;
@@ -28,6 +29,7 @@ fn main() {
             experience::ExperiencePlugin,
             ui::UiPlugin,
             map::MapPlugin,
+            camera::CameraPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -37,14 +39,5 @@ fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
         brightness: 1.0,
         color: Color::WHITE,
-    });
-
-    commands.spawn(Camera2dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 5.0).looking_to(Vec3::NEG_Z, Vec3::Y),
-        projection: OrthographicProjection {
-            scaling_mode: ScalingMode::FixedVertical(8.0),
-            ..Default::default()
-        },
-        ..Default::default()
     });
 }
