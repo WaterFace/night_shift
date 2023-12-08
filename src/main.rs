@@ -1,8 +1,4 @@
-use std::f32::consts::PI;
-
 use bevy::{log::LogPlugin, prelude::*, render::camera::ScalingMode};
-use bevy_rapier2d::{dynamics::LockedAxes, geometry::Collider};
-use health::Health;
 
 mod character;
 mod devices;
@@ -37,24 +33,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let enemy_mesh = meshes.add(
-        shape::Quad {
-            size: Vec2::splat(1.0),
-            ..Default::default()
-        }
-        .into(),
-    );
-    let enemy_mat = materials.add(StandardMaterial {
-        reflectance: 0.0,
-        perceptual_roughness: 1.0,
-        ..Color::ORANGE_RED.into()
-    });
-
+fn setup(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
         brightness: 1.0,
         color: Color::WHITE,
