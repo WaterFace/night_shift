@@ -18,7 +18,11 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {
             filter: "info,wgpu_core=warn,wgpu_hal=warn,night_shift=debug".into(),
+            #[cfg(debug_assertions)]
             level: bevy::log::Level::DEBUG,
+
+            #[cfg(not(debug_assertions))]
+            level: bevy::log::Level::WARN,
         }))
         .add_plugins((
             physics::PhysicsPlugin { debug: true },
