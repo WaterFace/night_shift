@@ -7,7 +7,7 @@ use crate::{character, devices, experience::ExperienceCounter, health::Health, p
 
 #[derive(Debug, Component)]
 pub struct Player {
-    facing: Vec2,
+    pub facing: Vec2,
 }
 
 impl Default for Player {
