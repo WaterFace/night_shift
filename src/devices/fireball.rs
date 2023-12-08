@@ -62,6 +62,7 @@ struct FireballBundle {
     pub rigid_body: RigidBody,
     pub velocity: Velocity,
     pub collider: Collider,
+    pub collision_groups: CollisionGroups,
     pub sensor: Sensor,
     pub active_events: ActiveEvents,
     pub locked_axes: LockedAxes,
@@ -207,6 +208,10 @@ fn fireball_launcher(
                     velocity: Velocity::linear(velocity),
                     texture: fireball_assets.texture.clone(),
                     collider: Collider::ball(0.2 / physics::PHYSICS_SCALE),
+                    collision_groups: CollisionGroups::new(
+                        physics::PROJECTILE_GROUP,
+                        physics::ENEMY_GROUP | physics::WALL_GROUP,
+                    ),
                     active_events: ActiveEvents::COLLISION_EVENTS,
                     ..Default::default()
                 });
