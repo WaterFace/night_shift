@@ -46,8 +46,6 @@ fn camera_follow(
         main_camera.bounds.max + vec2(-projection.area.width(), -projection.area.height()) / 2.0,
     );
 
-    debug!("{:?} {:?}", projection.area, main_camera.bounds);
-
     camera_transform.translation = desired_position.extend(5.0);
 }
 
