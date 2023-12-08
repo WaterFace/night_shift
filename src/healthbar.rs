@@ -5,7 +5,7 @@ use bevy::{
     sprite::{Material2d, Material2dPlugin, Mesh2dHandle},
 };
 
-use crate::{enemy::Enemy, health::Health, physics};
+use crate::{enemy::Enemy, health::Health, physics, player::Player};
 
 #[derive(Debug, Default, Component)]
 struct Healthbar;
@@ -46,12 +46,17 @@ fn update_healthbars(
 
 fn setup_healthbars(
     mut commands: Commands,
-    query: Query<(Entity, Option<&Enemy>), Added<Health>>,
+    query: Query<(Entity, Option<&Enemy>, Option<&Player>), Added<Health>>,
     healthbar_assets: Res<HealthbarAssets>,
     mut rolling_offset: Local<f32>,
     mut materials: ResMut<Assets<HealthbarMaterial>>,
 ) {
-    for (e, enemy) in query.iter() {
+    for (e, enemy, player) in query.iter() {
+        if let Some(_player) = player {
+            // TODO: spawn the big player healthbar
+            continue;
+        }
+
         let mat = materials.add(healthbar_assets.default_mat.clone());
         commands
             .spawn(HealthbarBundle {
