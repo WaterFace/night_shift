@@ -39,7 +39,7 @@ fn process_damage_events(
             continue;
         };
 
-        info!("Entity {:?} took {:?} damage", ev.entity, ev.amount);
+        debug!("Entity {:?} took {:?} damage", ev.entity, ev.amount);
 
         health.current = f32::clamp(health.current - ev.amount, 0.0, health.maximum);
 
