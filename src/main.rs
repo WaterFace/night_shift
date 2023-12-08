@@ -1,4 +1,4 @@
-use bevy::{log::LogPlugin, prelude::*, render::camera::ScalingMode};
+use bevy::{log::LogPlugin, prelude::*};
 
 mod camera;
 mod character;
@@ -8,6 +8,7 @@ mod experience;
 mod health;
 mod healthbar;
 mod map;
+mod pathfinding;
 mod physics;
 mod player;
 mod ui;
@@ -30,6 +31,7 @@ fn main() {
             ui::UiPlugin,
             map::MapPlugin,
             camera::CameraPlugin,
+            pathfinding::PathfindingPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
