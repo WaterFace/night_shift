@@ -183,13 +183,6 @@ impl Pathfinder {
         None
     }
 
-    pub fn get_region(&self, point: Vec2) -> Option<&Region> {
-        match self.get_region_index(point) {
-            None => None,
-            Some(i) => Some(&self.regions[i]),
-        }
-    }
-
     pub fn nodes_in_player_region(&self) -> &[usize] {
         let Some(player_region) = self.player_region else {
             return &[];
