@@ -4,6 +4,7 @@ mod camera;
 mod character;
 mod debug;
 mod devices;
+mod difficulty;
 mod enemy;
 mod experience;
 mod health;
@@ -38,6 +39,7 @@ fn main() {
             camera::CameraPlugin,
             pathfinding::PathfindingPlugin,
             debug::DebugPlugin,
+            difficulty::DifficultyPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
