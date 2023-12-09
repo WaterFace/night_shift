@@ -1,13 +1,16 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{math::vec3, prelude::*};
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
 use crate::{
     character,
     debug::DebugOverlay,
+    difficulty::Difficulty,
     experience::SpawnExperience,
     health::{DeathEvent, Health},
+    map::EnemySpawner,
     pathfinding::Pathfinder,
     physics,
 };
@@ -162,84 +165,166 @@ fn load_enemy_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
-    const ENEMIES_TO_SPAWN: u32 = 20;
-    for i in 0..ENEMIES_TO_SPAWN {
-        let t = (i as f32 / ENEMIES_TO_SPAWN as f32) * 2.0 * PI;
-        commands.spawn(EnemyBundle {
-            texture: enemy_assets.ghost_texture.clone(),
-            transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
-                .with_scale(Vec3::splat(0.4 * physics::PHYSICS_SCALE)),
-            collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
-            collision_groups: CollisionGroups::new(
-                physics::ENEMY_GROUP,
-                physics::ENEMY_GROUP
-                    | physics::WALL_GROUP
-                    | physics::PLAYER_GROUP
-                    | physics::PROJECTILE_GROUP,
-            ),
-            locked_axes: LockedAxes::ROTATION_LOCKED,
-            character: character::Character {
-                acceleration: 5.0,
-                max_speed: 1.5,
-                ..Default::default()
-            },
-            health: Health {
-                current: 2.0,
-                maximum: 2.0,
-                dead: false,
-            },
-            enemy: Enemy {
-                experience_dropped: 1.0,
-                healthbar_offset: 0.6,
-                healthbar_width: 1.0,
-                knockback: 8.0,
-                damage: 1.0,
-                ..Default::default()
-            },
-            friction: Friction {
-                coefficient: 0.01,
-                combine_rule: CoefficientCombineRule::Min,
-            },
-            ..Default::default()
-        });
+#[derive(Debug, Default)]
+struct SpawnEnemiesState {
+    enemies_remaining: f32,
+    big_enemies_remaining: f32,
+    time_since_last_spawn: f32,
+    to_spawn: f32,
+    to_spawn_big: f32,
+}
+
+fn spawn_enemies(
+    mut commands: Commands,
+    query: Query<(&Transform, &EnemySpawner)>,
+    enemy_assets: Res<EnemyAssets>,
+    difficulty: Res<Difficulty>,
+    time: Res<Time>,
+    mut state: Local<SpawnEnemiesState>,
+    mut spawn_locations: Local<Vec<Vec2>>,
+    mut big_spawn_locations: Local<Vec<Vec2>>,
+) {
+    if difficulty.is_changed() {
+        debug!("Setting spawn_enemies state");
+        state.enemies_remaining = difficulty.enemies_to_spawn;
+        state.big_enemies_remaining = difficulty.big_enemies_to_spawn;
+        state.time_since_last_spawn = 0.0;
+        state.to_spawn = 0.0;
+        state.to_spawn_big = 0.0;
     }
 
-    for i in 0..(ENEMIES_TO_SPAWN / 5).min(5) {
-        let t = (i as f32 / (ENEMIES_TO_SPAWN / 5) as f32) * 4.0 * PI;
-        commands.spawn(EnemyBundle {
-            texture: enemy_assets.big_ghost_texture.clone(),
-            transform: Transform::from_xyz(f32::cos(t) * 2.0, f32::sin(t) * 2.0, 0.0)
+    if spawn_locations.is_empty() {
+        spawn_locations.extend(query.iter().filter_map(|(t, spawner)| {
+            if !spawner.big_ghost {
+                Some(t.translation.truncate())
+            } else {
+                None
+            }
+        }));
+    }
+
+    if big_spawn_locations.is_empty() {
+        big_spawn_locations.extend(query.iter().filter_map(|(t, spawner)| {
+            if spawner.big_ghost {
+                Some(t.translation.truncate())
+            } else {
+                None
+            }
+        }));
+    }
+
+    let time_between_spawns = difficulty.spawn_delay;
+
+    state.time_since_last_spawn += time.delta_seconds();
+
+    if state.time_since_last_spawn < time_between_spawns {
+        return;
+    }
+    // We got here, so spawn a batch of enemies
+    state.time_since_last_spawn = 0.0;
+
+    // Try to spawn about 5% of the total wave size per batch
+    const BATCH_FRACTION: f32 = 0.05;
+
+    state.to_spawn += f32::min(
+        state.enemies_remaining,
+        difficulty.enemies_to_spawn * BATCH_FRACTION,
+    );
+
+    if state.to_spawn >= 1.0 {
+        state.enemies_remaining -= state.to_spawn.floor();
+        let to_spawn = state.to_spawn as u32;
+        state.to_spawn -= to_spawn as f32;
+
+        let spawner = spawn_locations[rand::thread_rng().gen_range(0..spawn_locations.len())];
+
+        for i in 0..to_spawn {
+            let t = (i as f32 / to_spawn as f32) * 2.0 * PI;
+            commands.spawn(EnemyBundle {
+                texture: enemy_assets.ghost_texture.clone(),
+                transform: Transform::from_translation(
+                    spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
+                )
+                .with_scale(Vec3::splat(0.4 * physics::PHYSICS_SCALE)),
+                collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
+                collision_groups: CollisionGroups::new(
+                    physics::ENEMY_GROUP,
+                    physics::ENEMY_GROUP
+                        | physics::WALL_GROUP
+                        | physics::PLAYER_GROUP
+                        | physics::PROJECTILE_GROUP,
+                ),
+                locked_axes: LockedAxes::ROTATION_LOCKED,
+                character: character::Character {
+                    acceleration: 5.0,
+                    max_speed: 1.5,
+                    ..Default::default()
+                },
+                health: Health::new(2.0 * difficulty.health_multiplier),
+                enemy: Enemy {
+                    experience_dropped: 1.0 * difficulty.experience_multiplier,
+                    healthbar_offset: 0.6,
+                    healthbar_width: 1.0,
+                    knockback: 8.0,
+                    damage: 1.0 * difficulty.damage_multiplier,
+                    ..Default::default()
+                },
+                friction: Friction {
+                    coefficient: 0.01,
+                    combine_rule: CoefficientCombineRule::Min,
+                },
+                ..Default::default()
+            });
+        }
+    }
+
+    state.to_spawn_big += f32::min(
+        state.big_enemies_remaining,
+        difficulty.big_enemies_to_spawn * BATCH_FRACTION,
+    );
+
+    if state.to_spawn_big >= 1.0 {
+        state.big_enemies_remaining -= state.to_spawn_big.floor();
+        let to_spawn_big = state.to_spawn_big as u32;
+        state.to_spawn_big -= to_spawn_big as f32;
+
+        let spawner =
+            big_spawn_locations[rand::thread_rng().gen_range(0..big_spawn_locations.len())];
+
+        for i in 0..to_spawn_big {
+            let t = (i as f32 / to_spawn_big as f32) * 2.0 * PI;
+            commands.spawn(EnemyBundle {
+                texture: enemy_assets.big_ghost_texture.clone(),
+                transform: Transform::from_translation(
+                    spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
+                )
                 .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
-            collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
-            collision_groups: CollisionGroups::new(
-                physics::ENEMY_GROUP,
-                physics::ENEMY_GROUP
-                    | physics::WALL_GROUP
-                    | physics::PLAYER_GROUP
-                    | physics::PROJECTILE_GROUP,
-            ),
-            locked_axes: LockedAxes::ROTATION_LOCKED,
-            character: character::Character {
-                acceleration: 2.0,
-                max_speed: 1.0,
+                collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
+                collision_groups: CollisionGroups::new(
+                    physics::ENEMY_GROUP,
+                    physics::ENEMY_GROUP
+                        | physics::WALL_GROUP
+                        | physics::PLAYER_GROUP
+                        | physics::PROJECTILE_GROUP,
+                ),
+                locked_axes: LockedAxes::ROTATION_LOCKED,
+                character: character::Character {
+                    acceleration: 2.0,
+                    max_speed: 1.0,
+                    ..Default::default()
+                },
+                health: Health::new(30.0 * difficulty.health_multiplier),
+                enemy: Enemy {
+                    experience_dropped: 10.0 * difficulty.experience_multiplier,
+                    healthbar_offset: 1.2,
+                    healthbar_width: 3.0,
+                    knockback: 20.0,
+                    damage: 3.0 * difficulty.damage_multiplier,
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            health: Health {
-                current: 30.0,
-                maximum: 30.0,
-                dead: false,
-            },
-            enemy: Enemy {
-                experience_dropped: 10.0,
-                healthbar_offset: 1.2,
-                healthbar_width: 3.0,
-                knockback: 20.0,
-                damage: 3.0,
-                ..Default::default()
-            },
-            ..Default::default()
-        });
+            });
+        }
     }
 }
 
@@ -249,6 +334,6 @@ impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_enemy_assets)
             .add_systems(Update, (move_enemies, handle_enemy_death, face_enemies))
-            .add_systems(PostStartup, spawn_enemies);
+            .add_systems(Update, spawn_enemies);
     }
 }

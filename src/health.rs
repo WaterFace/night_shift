@@ -11,6 +11,14 @@ impl Health {
     pub fn fraction(&self) -> f32 {
         self.current / self.maximum
     }
+
+    pub fn new(maximum: f32) -> Self {
+        Health {
+            current: maximum,
+            maximum,
+            dead: false,
+        }
+    }
 }
 
 #[derive(Event, Debug)]

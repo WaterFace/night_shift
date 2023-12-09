@@ -60,7 +60,7 @@ impl WallBundle {
 
 #[derive(Debug, Default, Component)]
 pub struct EnemySpawner {
-    big_ghost: bool,
+    pub big_ghost: bool,
 }
 
 #[derive(Debug, Default, Bundle)]
