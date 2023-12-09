@@ -11,8 +11,6 @@ pub struct MapPlugin;
 
 #[derive(Debug, Default, Resource)]
 struct MapAssets {
-    // mesh: Handle<Mesh>,
-    // material: Handle<ColorMaterial>,
     texture: Handle<Image>,
 }
 
