@@ -1,4 +1,4 @@
-use bevy::{asset::UntypedAssetId, prelude::*};
+use bevy::{asset::UntypedAssetId, prelude::*, render::texture::ImageSampler};
 use bevy_egui::EguiContexts;
 
 use crate::{healthbar::HealthbarMaterial, states::AppState};
@@ -49,6 +49,20 @@ fn load_font(
         .insert(0, "Tuffy Bold".to_owned());
 
     egui_contexts.ctx_mut().set_fonts(fonts);
+}
+
+fn set_texture_filtering(
+    mut textures: ResMut<Assets<Image>>,
+    mut reader: EventReader<AssetEvent<Image>>,
+) {
+    for ev in reader.read() {
+        let AssetEvent::Added { id } = ev else {
+            continue;
+        };
+        if let Some(texture) = textures.get_mut(*id) {
+            texture.sampler = ImageSampler::nearest();
+        }
+    }
 }
 
 fn load_assets(
@@ -131,7 +145,10 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LoadingAssets>()
             .add_systems(Startup, load_font)
-            .add_systems(Update, load_assets.run_if(in_state(AppState::Loading)))
+            .add_systems(
+                Update,
+                (load_assets, set_texture_filtering).run_if(in_state(AppState::Loading)),
+            )
             .add_systems(OnEnter(AppState::Loading), setup_loading_bar)
             .add_systems(OnExit(AppState::Loading), cleanup_loading);
     }
