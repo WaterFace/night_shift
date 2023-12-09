@@ -17,7 +17,7 @@ fn format_launch_speed(buf: &mut String, value: f32) {
 }
 // fire_delay: Upgradeable,
 fn fire_delay_formula(level: u32) -> f32 {
-    10.0_f32.powf(1.0 / (level as f32 * 0.01 + 1.0)) / 10.0
+    10.0_f32.powf(1.0 / (level as f32 * 0.1 + 1.0)) / 10.0
 }
 fn format_fire_delay(buf: &mut String, value: f32) {
     use std::fmt::Write;
@@ -25,11 +25,11 @@ fn format_fire_delay(buf: &mut String, value: f32) {
 }
 // punch_through: Upgradeable,
 fn punch_through_formula(level: u32) -> f32 {
-    level as f32 + 1.0
+    level as f32 * 0.5 + 1.0
 }
 fn format_punch_through(buf: &mut String, value: f32) {
     use std::fmt::Write;
-    write!(buf, "{:.0}", value - 1.0).unwrap();
+    write!(buf, "{:.0}%", (value - 1.0) * 100.0).unwrap();
 }
 // multishot: Upgradeable,
 fn multishot_formula(level: u32) -> f32 {
