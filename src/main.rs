@@ -10,6 +10,7 @@ mod experience;
 mod health;
 mod healthbar;
 mod loading;
+mod main_menu;
 mod map;
 mod pathfinding;
 mod physics;
@@ -44,7 +45,7 @@ fn main() {
             difficulty::DifficultyPlugin,
             loading::LoadingPlugin,
         ))
-        .add_plugins(states::StatesPlugin)
+        .add_plugins((states::StatesPlugin, main_menu::MainMenuPlugin))
         .add_systems(Startup, setup)
         .run();
 }

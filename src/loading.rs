@@ -95,8 +95,7 @@ fn load_assets(
     }
 
     if *loaded_assets > 0 && *loaded_assets == *total_assets {
-        // TODO: make a main menu, this should go to the main menu
-        next_state.set(AppState::InGame);
+        next_state.set(AppState::MainMenu);
     }
 }
 
