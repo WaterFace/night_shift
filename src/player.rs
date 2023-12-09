@@ -1,9 +1,12 @@
 use std::f32::consts::PI;
 
-use bevy::{math::vec2, prelude::*, window::PrimaryWindow};
+use bevy::{math::vec2, prelude::*, transform::TransformSystem, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
-use crate::{character, devices, experience::ExperienceCounter, health::Health, physics};
+use crate::{
+    character, devices, experience::ExperienceCounter, health::Health, map::PlayerSpawner, physics,
+};
 
 #[derive(Debug, Component)]
 pub struct Player {
@@ -62,14 +65,37 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
+fn spawn_player(
+    mut commands: Commands,
+    player_query: Query<&Transform, With<Player>>,
+    spawners: Query<&Transform, (With<PlayerSpawner>, Without<Player>)>,
+    player_assets: Res<PlayerAssets>,
+    mut possible_spawns: Local<Vec<Vec2>>,
+) {
+    if !player_query.is_empty() {
+        debug!("{:?}", player_query.single().translation.truncate());
+        return;
+    }
+    if possible_spawns.is_empty() {
+        possible_spawns.extend(spawners.iter().map(|t| t.translation.truncate()));
+    }
+    let spawn_point = possible_spawns[rand::thread_rng().gen_range(0..possible_spawns.len())];
+
+    let t = Transform::from_translation(spawn_point.extend(0.0))
+        .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE));
+
+    debug!("{:?} vs. {:?}", t.translation.truncate(), spawn_point);
+
     commands
         .spawn(PlayerBundle {
             texture: player_assets.texture_right.clone(),
             collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
             collision_groups: CollisionGroups::new(
                 physics::PLAYER_GROUP,
-                physics::ENEMY_GROUP | physics::WALL_GROUP | physics::PLAYER_GROUP,
+                physics::ENEMY_GROUP
+                    | physics::WALL_GROUP
+                    | physics::PLAYER_GROUP
+                    | physics::SPAWNER_GROUP,
             ),
             locked_axes: LockedAxes::ROTATION_LOCKED,
             character: character::Character {
@@ -82,7 +108,7 @@ fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
                 maximum: 100.0,
                 dead: false,
             },
-            transform: Transform::from_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
+            transform: t,
             ..Default::default()
         })
         .insert(devices::fireball::FireballLauncher::default());
@@ -177,6 +203,9 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_player_assets)
             .add_systems(Update, (move_player, face_player))
-            .add_systems(PostStartup, spawn_player);
+            .add_systems(
+                PostUpdate,
+                spawn_player.after(TransformSystem::TransformPropagate),
+            );
     }
 }

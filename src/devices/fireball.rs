@@ -2,7 +2,12 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-use crate::{enemy::Enemy, health::DamageEvent, map::Wall, physics};
+use crate::{
+    enemy::Enemy,
+    health::DamageEvent,
+    map::{EnemySpawner, Wall},
+    physics,
+};
 
 use super::Upgradeable;
 
@@ -80,14 +85,14 @@ struct FireballBundle {
 fn handle_fireball_collisions(
     mut commands: Commands,
     mut fireball_query: Query<(Entity, &mut Fireball), Without<crate::enemy::Enemy>>,
-    other_query: Query<(Entity, Option<&Enemy>, Option<&Wall>)>,
+    other_query: Query<(Entity, Option<&Enemy>, Option<&Wall>, Option<&EnemySpawner>)>,
     mut collision_events: EventReader<CollisionEvent>,
     mut damage_events: EventWriter<DamageEvent>,
 ) {
     for ev in collision_events.read() {
         match ev {
             CollisionEvent::Started(e1, e2, _) => {
-                let ((fireball_entity, mut fireball), (other_entity, enemy, wall)) = {
+                let ((fireball_entity, mut fireball), (other_entity, enemy, wall, spawner)) = {
                     if let (Ok(fireball), Ok(other)) =
                         (fireball_query.get_mut(*e1), other_query.get(*e2))
                     {
@@ -121,6 +126,10 @@ fn handle_fireball_collisions(
 
                 if let Some(_wall) = wall {
                     // If the thing it hit is a wall:
+                    commands.entity(fireball_entity).despawn_recursive();
+                }
+                if let Some(_spawner) = spawner {
+                    // ... Or a spawner
                     commands.entity(fireball_entity).despawn_recursive();
                 }
             }
@@ -210,7 +219,7 @@ fn fireball_launcher(
                     collider: Collider::ball(0.2 / physics::PHYSICS_SCALE),
                     collision_groups: CollisionGroups::new(
                         physics::PROJECTILE_GROUP,
-                        physics::ENEMY_GROUP | physics::WALL_GROUP,
+                        physics::ENEMY_GROUP | physics::WALL_GROUP | physics::SPAWNER_GROUP,
                     ),
                     active_events: ActiveEvents::COLLISION_EVENTS,
                     ..Default::default()

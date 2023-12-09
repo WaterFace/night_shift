@@ -59,6 +59,64 @@ impl WallBundle {
 }
 
 #[derive(Debug, Default, Component)]
+pub struct EnemySpawner {
+    big_ghost: bool,
+}
+
+#[derive(Debug, Default, Bundle)]
+struct EnemySpawnerBundle {
+    enemy_spawner: EnemySpawner,
+    transform: Transform,
+    global_transform: GlobalTransform,
+    collider: Collider,
+    collision_groups: CollisionGroups,
+}
+
+impl EnemySpawnerBundle {
+    pub fn from_pixel_coords(center: Vec2, radius: f32) -> Self {
+        EnemySpawnerBundle {
+            transform: Transform::from_translation(
+                vec3(-MAP_SIZE / 2.0 + center.x, MAP_SIZE / 2.0 - center.y, 0.0)
+                    * physics::PHYSICS_SCALE
+                    * MAP_SCALE,
+            ),
+            collider: Collider::ball(radius * physics::PHYSICS_SCALE),
+            collision_groups: CollisionGroups::new(
+                physics::SPAWNER_GROUP,
+                physics::PLAYER_GROUP | physics::PROJECTILE_GROUP,
+            ),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, Default, Component)]
+pub struct PlayerSpawner;
+
+#[derive(Debug, Default, Bundle)]
+struct PlayerSpawnerBundle {
+    layer_spawner: PlayerSpawner,
+    transform: Transform,
+    global_transform: GlobalTransform,
+}
+
+impl PlayerSpawnerBundle {
+    pub fn from_pixel_coords(position: Vec2) -> Self {
+        PlayerSpawnerBundle {
+            transform: Transform::from_translation(
+                vec3(
+                    -MAP_SIZE / 2.0 + position.x,
+                    MAP_SIZE / 2.0 - position.y,
+                    0.0,
+                ) * physics::PHYSICS_SCALE
+                    * MAP_SCALE,
+            ),
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, Default, Component)]
 pub struct PathNode;
 
 #[derive(Debug, Default, Bundle)]
@@ -241,20 +299,52 @@ fn setup_map(mut commands: Commands, assets: Res<MapAssets>) {
         vec2(282.0, 266.0),
         vec2(208.0, 206.0),
     ));
+
+    commands.spawn(EnemySpawnerBundle::from_pixel_coords(
+        vec2(319.0, 48.0),
+        25.0,
+    ));
+
+    commands.spawn(EnemySpawnerBundle::from_pixel_coords(
+        vec2(52.0, 416.0),
+        17.0,
+    ));
+
+    commands.spawn(EnemySpawnerBundle::from_pixel_coords(
+        vec2(315.0, 362.0),
+        22.0,
+    ));
+
+    commands.spawn(EnemySpawnerBundle {
+        enemy_spawner: EnemySpawner { big_ghost: true },
+        ..EnemySpawnerBundle::from_pixel_coords(vec2(437.0, 177.0), 55.0)
+    });
+
+    commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(100.0, 100.0)));
+    commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(290.0, 104.0)));
+    commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(400.0, 400.0)));
+    commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(160.0, 310.0)));
 }
 
-fn debug_path_nodes_and_regions(
+fn debug_map(
     mut gizmos: Gizmos,
-    query: Query<(&Transform, &PathNode)>,
+    path_node_query: Query<(&Transform, &PathNode)>,
     region_query: Query<&Region, Without<PathNode>>,
+    player_spawn_query: Query<
+        &Transform,
+        (With<PlayerSpawner>, Without<PathNode>, Without<Region>),
+    >,
     debug_overlay: Res<DebugOverlay>,
 ) {
     if debug_overlay.enabled {
-        for (t, _node) in query.iter() {
+        for (t, _node) in path_node_query.iter() {
             gizmos.circle_2d(t.translation.truncate(), 0.1, Color::RED);
         }
         for region in region_query.iter() {
             gizmos.rect_2d(region.area.center(), 0.0, region.area.size(), Color::TEAL);
+        }
+        for t in player_spawn_query.iter() {
+            gizmos.circle_2d(t.translation.truncate(), 0.1, Color::GREEN);
         }
     }
 }
@@ -267,6 +357,6 @@ impl Plugin for MapPlugin {
                 Startup,
                 (apply_deferred, setup_map).chain().after(load_map_assets),
             )
-            .add_systems(Update, debug_path_nodes_and_regions);
+            .add_systems(Update, debug_map);
     }
 }
