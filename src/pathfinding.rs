@@ -145,7 +145,7 @@ impl Pathfinder {
         }
     }
 
-    pub fn closest_node(&self, point: Vec2) -> usize {
+    pub fn closest_node(&self, point: Vec2) -> Option<usize> {
         match self.get_region_index(point) {
             Some(region_idx) => {
                 let mut shortest = f32::INFINITY;
@@ -157,20 +157,21 @@ impl Pathfinder {
                         shortest_at = node;
                     }
                 }
-                shortest_at
+                Some(shortest_at)
             }
             None => {
-                debug!("hit the slower path on closest_node");
-                let mut shortest = f32::INFINITY;
-                let mut shortest_at = usize::MAX;
-                for (i, node) in self.nodes.iter().cloned().enumerate() {
-                    let dist = node.distance_squared(point);
-                    if dist < shortest {
-                        shortest = dist;
-                        shortest_at = i;
-                    }
-                }
-                shortest_at
+                None
+                // debug!("hit the slower path on closest_node");
+                // let mut shortest = f32::INFINITY;
+                // let mut shortest_at = usize::MAX;
+                // for (i, node) in self.nodes.iter().cloned().enumerate() {
+                //     let dist = node.distance_squared(point);
+                //     if dist < shortest {
+                //         shortest = dist;
+                //         shortest_at = i;
+                //     }
+                // }
+                // shortest_at
             }
         }
     }

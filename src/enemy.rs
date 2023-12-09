@@ -82,7 +82,10 @@ fn move_enemies(
             } else {
                 // Pick one of the nodes near the player in an effectively random but consistent way
                 let goal_node = nodes[enemy_entity.index() as usize % nodes.len()];
-                let start_node = pathfinder.closest_node(enemy_pos);
+                let Some(start_node) = pathfinder.closest_node(enemy_pos) else {
+                    enemy.target = None;
+                    continue;
+                };
 
                 let path = pathfinder.get_path(start_node, goal_node);
                 for node in path.iter().rev() {
