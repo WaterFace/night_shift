@@ -20,7 +20,7 @@ struct LoadingBar {
 }
 
 #[derive(Debug, Default, Resource)]
-pub struct GlobalFont(Handle<Font>);
+pub struct GlobalFont(pub Handle<Font>);
 
 fn load_font(
     mut commands: Commands,
