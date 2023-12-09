@@ -5,8 +5,10 @@ use rand::Rng;
 use crate::{
     enemy::Enemy,
     health::DamageEvent,
+    loading::LoadingAssets,
     map::{EnemySpawner, Wall},
     physics,
+    states::AppState,
 };
 
 use super::Upgradeable;
@@ -236,8 +238,13 @@ struct FireballAssets {
     texture: Handle<Image>,
 }
 
-fn load_fireball_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_fireball_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading_assets: ResMut<LoadingAssets>,
+) {
     let texture = asset_server.load("textures/fireball.png");
+    loading_assets.add(texture.clone());
     commands.insert_resource(FireballAssets { texture });
 }
 
@@ -252,7 +259,8 @@ impl Plugin for FireballLauncherPlugin {
                 handle_fireball_collisions,
                 fireball_launcher,
                 aim_fireball_launcher,
-            ),
+            )
+                .run_if(in_state(AppState::InGame)),
         );
     }
 }

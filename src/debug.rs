@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::states::AppState;
+
 #[derive(Debug, Default, Resource)]
 pub struct DebugOverlay {
     pub enabled: bool,
@@ -16,6 +18,6 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DebugOverlay>()
-            .add_systems(Update, toggle_debug);
+            .add_systems(Update, toggle_debug.run_if(in_state(AppState::InGame)));
     }
 }

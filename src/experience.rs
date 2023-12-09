@@ -3,7 +3,9 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{healthbar::HealthbarMaterial, physics, player::Player};
+use crate::{
+    healthbar::HealthbarMaterial, loading::LoadingAssets, physics, player::Player, states::AppState,
+};
 
 #[derive(Component, Debug)]
 pub struct ExperienceCounter {
@@ -286,8 +288,13 @@ struct ExperienceOrbAssets {
     texture: Handle<Image>,
 }
 
-fn load_experience_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_experience_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading_assets: ResMut<LoadingAssets>,
+) {
     let texture = asset_server.load("textures/experience orb.png");
+    loading_assets.add(texture.clone());
 
     commands.insert_resource(ExperienceOrbAssets { texture });
 }
@@ -299,7 +306,7 @@ impl Plugin for ExperiencePlugin {
         app.add_event::<SpawnExperience>()
             .add_event::<CollectExperience>()
             .add_systems(
-                Startup,
+                OnEnter(AppState::InGame),
                 (load_experience_assets, load_experience_bar_assets),
             )
             .add_systems(
@@ -309,8 +316,9 @@ impl Plugin for ExperiencePlugin {
                     handle_collect_experience,
                     setup_experience_bar,
                     update_experience_bar,
-                ),
-            )
-            .add_systems(FixedUpdate, tick_experience_orbs);
+                    tick_experience_orbs,
+                )
+                    .run_if(in_state(AppState::InGame)),
+            );
     }
 }

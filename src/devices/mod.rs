@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::states::AppState;
+
 pub mod fireball;
 pub mod fireball_upgrades;
 
@@ -70,6 +72,9 @@ impl Plugin for DevicesPlugin {
             fireball_upgrades::FireballLauncherUpgradesPlugin,
         ))
         .add_state::<UpgradesMenuState>()
-        .add_systems(Update, debug_toggle_menu_state);
+        .add_systems(
+            Update,
+            debug_toggle_menu_state.run_if(in_state(AppState::InGame)),
+        );
     }
 }

@@ -9,10 +9,12 @@ mod enemy;
 mod experience;
 mod health;
 mod healthbar;
+mod loading;
 mod map;
 mod pathfinding;
 mod physics;
 mod player;
+mod states;
 mod ui;
 
 fn main() {
@@ -40,7 +42,9 @@ fn main() {
             pathfinding::PathfindingPlugin,
             debug::DebugPlugin,
             difficulty::DifficultyPlugin,
+            loading::LoadingPlugin,
         ))
+        .add_plugins(states::StatesPlugin)
         .add_systems(Startup, setup)
         .run();
 }

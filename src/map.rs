@@ -5,7 +5,7 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::*;
 
-use crate::{debug::DebugOverlay, physics};
+use crate::{debug::DebugOverlay, loading::LoadingAssets, physics, states::AppState};
 
 pub struct MapPlugin;
 
@@ -14,8 +14,13 @@ struct MapAssets {
     texture: Handle<Image>,
 }
 
-fn load_map_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_map_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading_assets: ResMut<LoadingAssets>,
+) {
     let texture = asset_server.load::<Image>("textures/map.png");
+    loading_assets.add(texture.clone());
 
     commands.insert_resource(MapAssets { texture })
 }
@@ -161,6 +166,18 @@ impl Region {
                 top_left + size * physics::PHYSICS_SCALE * MAP_SCALE * vec2(1.0, -1.0),
             ),
         }
+    }
+}
+
+fn cleanup_map(
+    mut commands: Commands,
+    query: Query<(
+        Entity,
+        AnyOf<(&Wall, &PathNode, &Region, &EnemySpawner, &PlayerSpawner)>,
+    )>,
+) {
+    for (e, _) in query.iter() {
+        commands.entity(e).despawn_recursive();
     }
 }
 
@@ -352,11 +369,8 @@ fn debug_map(
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_map_assets)
-            // TODO: do this when the game actually starts, and cleanup when resetting
-            .add_systems(
-                Startup,
-                (apply_deferred, setup_map).chain().after(load_map_assets),
-            )
-            .add_systems(Update, debug_map);
+            .add_systems(OnEnter(AppState::InGame), setup_map)
+            .add_systems(OnExit(AppState::InGame), cleanup_map)
+            .add_systems(Update, debug_map.run_if(in_state(AppState::InGame)));
     }
 }

@@ -6,12 +6,13 @@ use rand::Rng;
 
 use crate::{
     character, devices,
-    difficulty::StartNight,
     enemy::Enemy,
     experience::ExperienceCounter,
     health::{DamageEvent, Health},
+    loading::LoadingAssets,
     map::PlayerSpawner,
     physics,
+    states::AppState,
 };
 
 #[derive(Debug, Component)]
@@ -58,11 +59,20 @@ struct PlayerAssets {
     texture_down: Handle<Image>,
 }
 
-fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_player_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading_assets: ResMut<LoadingAssets>,
+) {
     let texture_right = asset_server.load("textures/guy right.png");
     let texture_left = asset_server.load("textures/guy left.png");
     let texture_up = asset_server.load("textures/guy up.png");
     let texture_down = asset_server.load("textures/guy down.png");
+
+    loading_assets.add(texture_right.clone());
+    loading_assets.add(texture_left.clone());
+    loading_assets.add(texture_up.clone());
+    loading_assets.add(texture_down.clone());
 
     commands.insert_resource(PlayerAssets {
         texture_right,
@@ -78,8 +88,6 @@ fn spawn_player(
     spawners: Query<&Transform, (With<PlayerSpawner>, Without<Player>)>,
     player_assets: Res<PlayerAssets>,
     mut possible_spawns: Local<Vec<Vec2>>,
-    /* TEMP */
-    mut start_night: EventWriter<StartNight>,
 ) {
     if !player_query.is_empty() {
         return;
@@ -119,15 +127,6 @@ fn spawn_player(
             ..Default::default()
         })
         .insert(devices::fireball::FireballLauncher::default());
-
-    // TEMP
-    start_night.send(StartNight);
-    start_night.send(StartNight);
-    start_night.send(StartNight);
-    start_night.send(StartNight);
-    start_night.send(StartNight);
-    start_night.send(StartNight);
-    start_night.send(StartNight);
 }
 
 fn move_player(mut query: Query<(&Player, &mut character::Character)>, input: Res<Input<KeyCode>>) {
@@ -255,8 +254,15 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_player_assets)
-            .add_systems(Update, (move_player, face_player, handle_player_collision))
-            .add_systems(Update, spawn_player);
+        app.add_systems(Startup, load_player_assets).add_systems(
+            Update,
+            (
+                move_player,
+                face_player,
+                handle_player_collision,
+                spawn_player,
+            )
+                .run_if(in_state(AppState::InGame)),
+        );
     }
 }

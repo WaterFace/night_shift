@@ -5,7 +5,7 @@ use bevy::{
     sprite::{Material2d, Material2dPlugin, Mesh2dHandle},
 };
 
-use crate::{enemy::Enemy, health::Health, physics, player::Player};
+use crate::{enemy::Enemy, health::Health, physics, player::Player, states::AppState};
 
 #[derive(Debug, Default, Component)]
 struct Healthbar;
@@ -155,6 +155,9 @@ impl Plugin for HealthbarPlugin {
             Material2dPlugin::<HealthbarMaterial>::default(),
         ))
         .add_systems(Startup, load_healthbar_assets)
-        .add_systems(Update, (setup_healthbars, update_healthbars));
+        .add_systems(
+            Update,
+            (setup_healthbars, update_healthbars).run_if(in_state(AppState::InGame)),
+        );
     }
 }

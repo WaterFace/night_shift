@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::states::AppState;
+
 #[derive(Debug, Default, Resource)]
 pub struct Difficulty {
     pub night: u32,
@@ -72,7 +74,7 @@ impl Plugin for DifficultyPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<StartNight>()
             .add_event::<NightFinished>()
-            .add_systems(Startup, setup_difficulty)
-            .add_systems(Update, handle_events);
+            .add_systems(OnEnter(AppState::InGame), setup_difficulty)
+            .add_systems(Update, handle_events.run_if(in_state(AppState::InGame)));
     }
 }

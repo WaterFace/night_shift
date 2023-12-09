@@ -1,6 +1,6 @@
 use bevy::{math::vec2, prelude::*, render::camera::ScalingMode};
 
-use crate::{map, physics, player::Player};
+use crate::{map, physics, player::Player, states::AppState};
 
 #[derive(Component, Debug, Default)]
 pub struct MainCamera {
@@ -25,6 +25,12 @@ fn spawn_camera(mut commands: Commands) {
             ..Default::default()
         },
     ));
+}
+
+fn cleanup_camera(mut commands: Commands, query: Query<Entity, With<MainCamera>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive()
+    }
 }
 
 fn camera_follow(
@@ -52,7 +58,8 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_camera)
-            .add_systems(Update, camera_follow);
+        app.add_systems(OnEnter(AppState::InGame), spawn_camera)
+            .add_systems(OnExit(AppState::InGame), cleanup_camera)
+            .add_systems(Update, camera_follow.run_if(in_state(AppState::InGame)));
     }
 }

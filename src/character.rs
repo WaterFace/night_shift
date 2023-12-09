@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::states::AppState;
+
 #[derive(Debug, Default, Component)]
 pub struct Character {
     pub max_speed: f32,
@@ -25,6 +27,6 @@ pub struct CharacterPlugin;
 
 impl Plugin for CharacterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, move_character);
+        app.add_systems(Update, move_character.run_if(in_state(AppState::InGame)));
     }
 }

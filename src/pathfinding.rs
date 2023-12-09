@@ -8,6 +8,7 @@ use crate::{
     map::{self, PathNode, Region},
     physics,
     player::Player,
+    states::AppState,
 };
 
 #[derive(Resource, Debug)]
@@ -159,20 +160,7 @@ impl Pathfinder {
                 }
                 Some(shortest_at)
             }
-            None => {
-                None
-                // debug!("hit the slower path on closest_node");
-                // let mut shortest = f32::INFINITY;
-                // let mut shortest_at = usize::MAX;
-                // for (i, node) in self.nodes.iter().cloned().enumerate() {
-                //     let dist = node.distance_squared(point);
-                //     if dist < shortest {
-                //         shortest = dist;
-                //         shortest_at = i;
-                //     }
-                // }
-                // shortest_at
-            }
+            None => None,
         }
     }
 
@@ -194,10 +182,26 @@ impl Pathfinder {
     }
 }
 
-pub fn precompute(mut pathfinder: ResMut<Pathfinder>, rapier_context: Res<RapierContext>) {
-    pathfinder.compute_visibility(&rapier_context);
-    pathfinder.compute_regions();
-    pathfinder.compute_paths();
+#[derive(Debug, Default, Resource)]
+pub struct Precomputed;
+
+pub fn precompute(
+    mut commands: Commands,
+    state: Option<Res<Precomputed>>,
+    mut pathfinder: ResMut<Pathfinder>,
+    rapier_context: Res<RapierContext>,
+) {
+    if state.is_none() {
+        debug!("Computing pathfinding");
+        pathfinder.compute_visibility(&rapier_context);
+        pathfinder.compute_regions();
+        pathfinder.compute_paths();
+        commands.insert_resource(Precomputed);
+    }
+}
+
+fn cleanup_pathfinding(mut commands: Commands) {
+    commands.remove_resource::<Precomputed>();
 }
 
 pub fn add_nodes_and_regions(
@@ -266,12 +270,14 @@ impl Plugin for PathfindingPlugin {
         app.init_resource::<Pathfinder>()
             .add_systems(
                 Update,
-                (add_nodes_and_regions, debug_pathfinding, find_player_region),
+                (add_nodes_and_regions, debug_pathfinding, find_player_region)
+                    .run_if(in_state(AppState::InGame)),
             )
+            .add_systems(OnExit(AppState::InGame), cleanup_pathfinding)
             .add_systems(
                 PostUpdate,
                 precompute
-                    .run_if(run_once())
+                    .run_if(in_state(AppState::InGame))
                     .after(TransformSystem::TransformPropagate),
             );
     }

@@ -10,9 +10,11 @@ use crate::{
     difficulty::Difficulty,
     experience::SpawnExperience,
     health::{DeathEvent, Health},
+    loading::LoadingAssets,
     map::EnemySpawner,
     pathfinding::Pathfinder,
     physics,
+    states::AppState,
 };
 
 #[derive(Component, Debug, Default)]
@@ -155,9 +157,16 @@ struct EnemyAssets {
     big_ghost_texture: Handle<Image>,
 }
 
-fn load_enemy_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_enemy_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut loading_assets: ResMut<LoadingAssets>,
+) {
     let ghost_texture = asset_server.load::<Image>("textures/ghost.png");
     let big_ghost_texture = asset_server.load::<Image>("textures/big ghost.png");
+
+    loading_assets.add(ghost_texture.clone());
+    loading_assets.add(big_ghost_texture.clone());
 
     commands.insert_resource(EnemyAssets {
         ghost_texture,
@@ -332,8 +341,15 @@ pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_enemy_assets)
-            .add_systems(Update, (move_enemies, handle_enemy_death, face_enemies))
-            .add_systems(Update, spawn_enemies);
+        app.add_systems(Startup, load_enemy_assets).add_systems(
+            Update,
+            (
+                move_enemies,
+                handle_enemy_death,
+                face_enemies,
+                spawn_enemies,
+            )
+                .run_if(in_state(AppState::InGame)),
+        );
     }
 }

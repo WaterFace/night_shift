@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::states::AppState;
+
 #[derive(Component, Debug, Default)]
 pub struct Health {
     pub current: f32,
@@ -66,6 +68,9 @@ impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DamageEvent>()
             .add_event::<DeathEvent>()
-            .add_systems(Update, process_damage_events);
+            .add_systems(
+                Update,
+                process_damage_events.run_if(in_state(AppState::InGame)),
+            );
     }
 }

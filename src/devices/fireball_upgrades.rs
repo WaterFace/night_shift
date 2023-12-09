@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{Align2, InnerResponse, Response, Rounding, Ui, WidgetText},
+    egui::{Align2, InnerResponse, Layout, Response, Rounding, Ui, WidgetText},
     *,
 };
 
@@ -75,6 +75,7 @@ fn fireball_launcher_upgrade_menu(
     }
 
     let confirm_response = egui::Window::new("Upgrades")
+        .default_width(600.0)
         .resizable(false)
         .movable(false)
         .anchor(Align2::CENTER_CENTER, egui::Vec2::ZERO)
@@ -184,7 +185,14 @@ fn fireball_launcher_upgrade_menu(
                 }
             }
 
-            return ui.add(square_button("Confirm"));
+            return ui
+                .with_layout(
+                    Layout::default()
+                        .with_cross_align(egui::Align::RIGHT)
+                        .with_cross_justify(false),
+                    |ui| ui.add(square_button("Confirm")),
+                )
+                .inner;
         });
 
     match confirm_response {
@@ -213,12 +221,18 @@ fn adjuster(ui: &mut Ui, heading: &str, value: &str) -> (Response, Response) {
     ui.vertical_centered(|ui| {
         ui.label(heading);
         let inner_response = ui.vertical_centered(|ui| {
-            ui.horizontal(|ui| {
-                let minus_response = ui.add(square_button("-"));
-                ui.add(egui::Label::new(value));
-                let plus_response = ui.add(square_button("+"));
-                (minus_response, plus_response)
-            })
+            ui.with_layout(
+                Layout::left_to_right(egui::Align::Center)
+                    .with_cross_align(egui::Align::Min)
+                    .with_main_justify(false)
+                    .with_cross_justify(false),
+                |ui| {
+                    let minus_response = ui.add(square_button("-"));
+                    ui.add(egui::Label::new(value));
+                    let plus_response = ui.add(square_button("+"));
+                    (minus_response, plus_response)
+                },
+            )
             .inner
         });
         ui.separator();
