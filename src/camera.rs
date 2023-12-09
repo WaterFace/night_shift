@@ -37,7 +37,6 @@ fn camera_follow(
     };
 
     let Ok(player_transform) = player_query.get_single() else {
-        error!("More than one player!");
         return;
     };
 
