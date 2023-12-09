@@ -18,6 +18,7 @@ pub struct Enemy {
     pub healthbar_offset: f32,
     pub healthbar_width: f32,
     pub target: Option<Vec2>,
+    pub facing: Vec2,
 }
 
 #[derive(Bundle, Default)]
@@ -97,6 +98,7 @@ fn move_enemies(
         }
         if let Some(target) = enemy.target {
             let dir = (target - enemy_pos).normalize_or_zero();
+            enemy.facing = dir;
 
             if debug_overlay.enabled {
                 gizmos.line_2d(enemy_pos, target, Color::GREEN);
@@ -105,6 +107,18 @@ fn move_enemies(
             character.desired_direction = dir;
         } else {
             character.desired_direction = Vec2::ZERO;
+        }
+    }
+}
+
+fn face_enemies(mut query: Query<(&mut Transform, &Enemy)>) {
+    for (mut transform, enemy) in query.iter_mut() {
+        if enemy.facing.x <= 0.0 {
+            // facing left
+            transform.scale.x = transform.scale.x.abs();
+        } else {
+            // facing right
+            transform.scale.x = -transform.scale.x.abs();
         }
     }
 }
@@ -184,7 +198,7 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
         });
     }
 
-    for i in 0..ENEMIES_TO_SPAWN / 5 {
+    for i in 0..(ENEMIES_TO_SPAWN / 5).min(5) {
         let t = (i as f32 / (ENEMIES_TO_SPAWN / 5) as f32) * 4.0 * PI;
         commands.spawn(EnemyBundle {
             texture: enemy_assets.big_ghost_texture.clone(),
@@ -225,7 +239,7 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_enemy_assets)
-            .add_systems(Update, (move_enemies, handle_enemy_death))
+            .add_systems(Update, (move_enemies, handle_enemy_death, face_enemies))
             .add_systems(PostStartup, spawn_enemies);
     }
 }
