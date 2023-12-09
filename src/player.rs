@@ -6,6 +6,7 @@ use rand::Rng;
 
 use crate::{
     character, devices,
+    difficulty::StartNight,
     enemy::Enemy,
     experience::ExperienceCounter,
     health::{DamageEvent, Health},
@@ -77,6 +78,8 @@ fn spawn_player(
     spawners: Query<&Transform, (With<PlayerSpawner>, Without<Player>)>,
     player_assets: Res<PlayerAssets>,
     mut possible_spawns: Local<Vec<Vec2>>,
+    /* TEMP */
+    mut start_night: EventWriter<StartNight>,
 ) {
     if !player_query.is_empty() {
         return;
@@ -116,6 +119,15 @@ fn spawn_player(
             ..Default::default()
         })
         .insert(devices::fireball::FireballLauncher::default());
+
+    // TEMP
+    start_night.send(StartNight);
+    start_night.send(StartNight);
+    start_night.send(StartNight);
+    start_night.send(StartNight);
+    start_night.send(StartNight);
+    start_night.send(StartNight);
+    start_night.send(StartNight);
 }
 
 fn move_player(mut query: Query<(&Player, &mut character::Character)>, input: Res<Input<KeyCode>>) {
