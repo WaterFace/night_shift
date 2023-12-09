@@ -19,6 +19,8 @@ pub struct Enemy {
     pub healthbar_width: f32,
     pub target: Option<Vec2>,
     pub facing: Vec2,
+    pub knockback: f32,
+    pub damage: f32,
 }
 
 #[derive(Bundle, Default)]
@@ -188,6 +190,8 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
                 experience_dropped: 1.0,
                 healthbar_offset: 0.6,
                 healthbar_width: 1.0,
+                knockback: 8.0,
+                damage: 1.0,
                 ..Default::default()
             },
             friction: Friction {
@@ -227,6 +231,8 @@ fn spawn_enemies(mut commands: Commands, enemy_assets: Res<EnemyAssets>) {
                 experience_dropped: 10.0,
                 healthbar_offset: 1.2,
                 healthbar_width: 3.0,
+                knockback: 20.0,
+                damage: 3.0,
                 ..Default::default()
             },
             ..Default::default()

@@ -1,11 +1,16 @@
 use std::f32::consts::PI;
 
-use bevy::{math::vec2, prelude::*, transform::TransformSystem, window::PrimaryWindow};
+use bevy::{math::vec2, prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 use crate::{
-    character, devices, experience::ExperienceCounter, health::Health, map::PlayerSpawner, physics,
+    character, devices,
+    enemy::Enemy,
+    experience::ExperienceCounter,
+    health::{DamageEvent, Health},
+    map::PlayerSpawner,
+    physics,
 };
 
 #[derive(Debug, Component)]
@@ -31,6 +36,7 @@ pub struct PlayerBundle {
     pub collider: Collider,
     pub locked_axes: LockedAxes,
     pub collision_groups: CollisionGroups,
+    pub active_events: ActiveEvents,
 
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -73,7 +79,6 @@ fn spawn_player(
     mut possible_spawns: Local<Vec<Vec2>>,
 ) {
     if !player_query.is_empty() {
-        debug!("{:?}", player_query.single().translation.truncate());
         return;
     }
     if possible_spawns.is_empty() {
@@ -83,8 +88,6 @@ fn spawn_player(
 
     let t = Transform::from_translation(spawn_point.extend(0.0))
         .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE));
-
-    debug!("{:?} vs. {:?}", t.translation.truncate(), spawn_point);
 
     commands
         .spawn(PlayerBundle {
@@ -98,6 +101,7 @@ fn spawn_player(
                     | physics::SPAWNER_GROUP,
             ),
             locked_axes: LockedAxes::ROTATION_LOCKED,
+            active_events: ActiveEvents::COLLISION_EVENTS,
             character: character::Character {
                 acceleration: 10.0,
                 max_speed: 3.0,
@@ -197,15 +201,50 @@ fn face_player(
     }
 }
 
+fn handle_player_collision(
+    mut player_query: Query<(Entity, &Transform, &mut Velocity), With<Player>>,
+    other_query: Query<(&Transform, Option<&Enemy>), Without<Player>>,
+    mut collision_events: EventReader<CollisionEvent>,
+    mut damage_events: EventWriter<DamageEvent>,
+) {
+    for ev in collision_events.read() {
+        let &CollisionEvent::Started(e1, e2, _) = ev else {
+            continue;
+        };
+
+        let ((player_entity, player_transform, mut player_velocity), (other_transform, enemy)) = {
+            if let (Ok(player), Ok(other)) = (player_query.get_mut(e1), other_query.get(e2)) {
+                (player, other)
+            } else if let (Ok(player), Ok(other)) = (player_query.get_mut(e2), other_query.get(e1))
+            {
+                (player, other)
+            } else {
+                continue;
+            }
+        };
+
+        if let Some(enemy) = enemy {
+            damage_events.send(DamageEvent {
+                entity: player_entity,
+                amount: enemy.damage,
+            });
+
+            // knockback
+            let knockback = (player_transform.translation.truncate()
+                - other_transform.translation.truncate())
+            .normalize_or_zero()
+                * enemy.knockback;
+            player_velocity.linvel += knockback;
+        }
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_player_assets)
-            .add_systems(Update, (move_player, face_player))
-            .add_systems(
-                PostUpdate,
-                spawn_player.after(TransformSystem::TransformPropagate),
-            );
+            .add_systems(Update, (move_player, face_player, handle_player_collision))
+            .add_systems(Update, spawn_player);
     }
 }
