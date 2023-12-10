@@ -83,7 +83,7 @@ fn load_assets(
 
     for (is_loaded, asset) in unloaded.iter_mut() {
         if !*is_loaded && asset_server.is_loaded_with_dependencies(*asset) {
-            println!("Asset loaded!");
+            debug!("Asset loaded!");
             *is_loaded = true;
             *loaded_assets += 1;
         }
