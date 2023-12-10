@@ -32,7 +32,7 @@ fn main() {
             level: bevy::log::Level::WARN,
         }))
         .add_plugins((
-            physics::PhysicsPlugin { debug: true },
+            physics::PhysicsPlugin { debug: false },
             character::CharacterPlugin,
             player::PlayerPlugin,
             enemy::EnemyPlugin,
