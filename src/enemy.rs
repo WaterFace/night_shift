@@ -28,6 +28,11 @@ pub struct Enemy {
     pub damage: f32,
 }
 
+#[derive(Component, Debug, Default)]
+struct Ghost;
+#[derive(Component, Debug, Default)]
+struct BigGhost;
+
 #[derive(Bundle, Default)]
 pub struct EnemyBundle {
     pub enemy: Enemy,
@@ -121,14 +126,25 @@ fn move_enemies(
     }
 }
 
-fn face_enemies(mut query: Query<(&mut Transform, &Enemy)>) {
-    for (mut transform, enemy) in query.iter_mut() {
+fn face_enemies(
+    mut query: Query<(&Enemy, &mut Handle<Image>, AnyOf<(&Ghost, &BigGhost)>)>,
+    enemy_assets: Res<EnemyAssets>,
+) {
+    for (enemy, mut texture, (ghost, big_ghost)) in query.iter_mut() {
         if enemy.facing.x <= 0.0 {
             // facing left
-            transform.scale.x = transform.scale.x.abs();
+            if ghost.is_some() {
+                *texture = enemy_assets.ghost_left_texture.clone();
+            } else if big_ghost.is_some() {
+                *texture = enemy_assets.big_ghost_left_texture.clone();
+            }
         } else {
             // facing right
-            transform.scale.x = -transform.scale.x.abs();
+            if ghost.is_some() {
+                *texture = enemy_assets.ghost_right_texture.clone();
+            } else if big_ghost.is_some() {
+                *texture = enemy_assets.big_ghost_right_texture.clone();
+            }
         }
     }
 }
@@ -153,8 +169,10 @@ fn handle_enemy_death(
 
 #[derive(Debug, Resource)]
 struct EnemyAssets {
-    ghost_texture: Handle<Image>,
-    big_ghost_texture: Handle<Image>,
+    ghost_left_texture: Handle<Image>,
+    ghost_right_texture: Handle<Image>,
+    big_ghost_left_texture: Handle<Image>,
+    big_ghost_right_texture: Handle<Image>,
 }
 
 fn load_enemy_assets(
@@ -162,15 +180,21 @@ fn load_enemy_assets(
     asset_server: Res<AssetServer>,
     mut loading_assets: ResMut<LoadingAssets>,
 ) {
-    let ghost_texture = asset_server.load::<Image>("textures/ghost.png");
-    let big_ghost_texture = asset_server.load::<Image>("textures/big ghost.png");
+    let ghost_left_texture = asset_server.load::<Image>("textures/ghost left.png");
+    let ghost_right_texture = asset_server.load::<Image>("textures/ghost right.png");
+    let big_ghost_left_texture = asset_server.load::<Image>("textures/big ghost left.png");
+    let big_ghost_right_texture = asset_server.load::<Image>("textures/big ghost right.png");
 
-    loading_assets.add(ghost_texture.clone());
-    loading_assets.add(big_ghost_texture.clone());
+    loading_assets.add(ghost_left_texture.clone());
+    loading_assets.add(ghost_right_texture.clone());
+    loading_assets.add(big_ghost_left_texture.clone());
+    loading_assets.add(big_ghost_right_texture.clone());
 
     commands.insert_resource(EnemyAssets {
-        ghost_texture,
-        big_ghost_texture,
+        ghost_left_texture,
+        ghost_right_texture,
+        big_ghost_left_texture,
+        big_ghost_right_texture,
     });
 }
 
@@ -264,41 +288,44 @@ fn spawn_enemies(
 
         for i in 0..to_spawn {
             let t = (i as f32 / to_spawn as f32) * 2.0 * PI;
-            commands.spawn(EnemyBundle {
-                texture: enemy_assets.ghost_texture.clone(),
-                transform: Transform::from_translation(
-                    spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
-                )
-                .with_scale(Vec3::splat(0.4 * physics::PHYSICS_SCALE)),
-                collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
-                collision_groups: CollisionGroups::new(
-                    physics::ENEMY_GROUP,
-                    physics::ENEMY_GROUP
-                        | physics::WALL_GROUP
-                        | physics::PLAYER_GROUP
-                        | physics::PROJECTILE_GROUP,
-                ),
-                locked_axes: LockedAxes::ROTATION_LOCKED,
-                character: character::Character {
-                    acceleration: 5.0,
-                    max_speed: 1.5,
+            commands.spawn((
+                EnemyBundle {
+                    texture: enemy_assets.ghost_left_texture.clone(),
+                    transform: Transform::from_translation(
+                        spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
+                    )
+                    .with_scale(Vec3::splat(0.4 * physics::PHYSICS_SCALE)),
+                    collider: Collider::ball(0.5 / physics::PHYSICS_SCALE),
+                    collision_groups: CollisionGroups::new(
+                        physics::ENEMY_GROUP,
+                        physics::ENEMY_GROUP
+                            | physics::WALL_GROUP
+                            | physics::PLAYER_GROUP
+                            | physics::PROJECTILE_GROUP,
+                    ),
+                    locked_axes: LockedAxes::ROTATION_LOCKED,
+                    character: character::Character {
+                        acceleration: 5.0,
+                        max_speed: 1.5,
+                        ..Default::default()
+                    },
+                    health: Health::new(2.0 * difficulty.health_multiplier),
+                    enemy: Enemy {
+                        experience_dropped: 1.0 * difficulty.experience_multiplier,
+                        healthbar_offset: 0.65,
+                        healthbar_width: 1.0,
+                        knockback: 8.0,
+                        damage: 1.0 * difficulty.damage_multiplier,
+                        ..Default::default()
+                    },
+                    friction: Friction {
+                        coefficient: 0.01,
+                        combine_rule: CoefficientCombineRule::Min,
+                    },
                     ..Default::default()
                 },
-                health: Health::new(2.0 * difficulty.health_multiplier),
-                enemy: Enemy {
-                    experience_dropped: 1.0 * difficulty.experience_multiplier,
-                    healthbar_offset: 0.65,
-                    healthbar_width: 1.0,
-                    knockback: 8.0,
-                    damage: 1.0 * difficulty.damage_multiplier,
-                    ..Default::default()
-                },
-                friction: Friction {
-                    coefficient: 0.01,
-                    combine_rule: CoefficientCombineRule::Min,
-                },
-                ..Default::default()
-            });
+                Ghost,
+            ));
         }
     }
 
@@ -318,37 +345,40 @@ fn spawn_enemies(
 
         for i in 0..to_spawn_big {
             let t = (i as f32 / to_spawn_big as f32) * 2.0 * PI;
-            commands.spawn(EnemyBundle {
-                texture: enemy_assets.big_ghost_texture.clone(),
-                transform: Transform::from_translation(
-                    spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
-                )
-                .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
-                collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
-                collision_groups: CollisionGroups::new(
-                    physics::ENEMY_GROUP,
-                    physics::ENEMY_GROUP
-                        | physics::WALL_GROUP
-                        | physics::PLAYER_GROUP
-                        | physics::PROJECTILE_GROUP,
-                ),
-                locked_axes: LockedAxes::ROTATION_LOCKED,
-                character: character::Character {
-                    acceleration: 2.0,
-                    max_speed: 1.0,
+            commands.spawn((
+                EnemyBundle {
+                    texture: enemy_assets.big_ghost_left_texture.clone(),
+                    transform: Transform::from_translation(
+                        spawner.extend(0.0) + vec3(f32::cos(t) * 0.5, f32::sin(t) * 0.5, 0.0),
+                    )
+                    .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
+                    collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
+                    collision_groups: CollisionGroups::new(
+                        physics::ENEMY_GROUP,
+                        physics::ENEMY_GROUP
+                            | physics::WALL_GROUP
+                            | physics::PLAYER_GROUP
+                            | physics::PROJECTILE_GROUP,
+                    ),
+                    locked_axes: LockedAxes::ROTATION_LOCKED,
+                    character: character::Character {
+                        acceleration: 2.0,
+                        max_speed: 1.0,
+                        ..Default::default()
+                    },
+                    health: Health::new(30.0 * difficulty.health_multiplier),
+                    enemy: Enemy {
+                        experience_dropped: 10.0 * difficulty.experience_multiplier,
+                        healthbar_offset: 1.3,
+                        healthbar_width: 3.0,
+                        knockback: 20.0,
+                        damage: 3.0 * difficulty.damage_multiplier,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
-                health: Health::new(30.0 * difficulty.health_multiplier),
-                enemy: Enemy {
-                    experience_dropped: 10.0 * difficulty.experience_multiplier,
-                    healthbar_offset: 1.3,
-                    healthbar_width: 3.0,
-                    knockback: 20.0,
-                    damage: 3.0 * difficulty.damage_multiplier,
-                    ..Default::default()
-                },
-                ..Default::default()
-            });
+                BigGhost,
+            ));
         }
     }
 }
