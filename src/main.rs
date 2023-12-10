@@ -1,4 +1,4 @@
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*};
 
 mod audio;
 mod camera;
@@ -23,6 +23,7 @@ mod ui;
 
 fn main() {
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_plugins(DefaultPlugins.set(LogPlugin {
             filter: "info,wgpu_core=warn,wgpu_hal=warn,night_shift=debug".into(),
             #[cfg(debug_assertions)]
