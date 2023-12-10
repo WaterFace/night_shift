@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::states::AppState;
-
 pub mod fireball;
 pub mod fireball_upgrades;
 
@@ -41,28 +39,6 @@ impl Upgradeable {
     }
 }
 
-#[derive(States, Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum UpgradesMenuState {
-    #[default]
-    Closed,
-    Open,
-}
-
-fn debug_toggle_menu_state(
-    cur_state: Res<State<UpgradesMenuState>>,
-    mut next_state: ResMut<NextState<UpgradesMenuState>>,
-    input: Res<Input<KeyCode>>,
-) {
-    if input.just_pressed(KeyCode::Return) {
-        match cur_state.get() {
-            UpgradesMenuState::Closed => next_state.set(UpgradesMenuState::Open),
-            UpgradesMenuState::Open => {
-                // Don't do anything, let the menu close itself
-            }
-        }
-    }
-}
-
 pub struct DevicesPlugin;
 
 impl Plugin for DevicesPlugin {
@@ -70,11 +46,6 @@ impl Plugin for DevicesPlugin {
         app.add_plugins((
             fireball::FireballLauncherPlugin,
             fireball_upgrades::FireballLauncherUpgradesPlugin,
-        ))
-        .add_state::<UpgradesMenuState>()
-        .add_systems(
-            Update,
-            debug_toggle_menu_state.run_if(in_state(AppState::InGame)),
-        );
+        ));
     }
 }
