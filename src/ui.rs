@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{Rounding, Stroke, Visuals},
+    egui::{Rounding, Stroke, Visuals, WidgetText},
     *,
 };
 
 pub struct UiPlugin;
+
+pub fn square_button(text: impl Into<WidgetText>) -> egui::Button<'static> {
+    egui::Button::new(text).rounding(Rounding::ZERO)
+}
 
 fn load_ui_assets() {}
 
