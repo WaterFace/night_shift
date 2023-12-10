@@ -365,19 +365,27 @@ fn spawn_enemies(
     }
 }
 
+fn cleanup_enemies(mut commands: Commands, query: Query<Entity, With<Enemy>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+}
+
 pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_enemy_assets).add_systems(
-            Update,
-            (
-                move_enemies,
-                handle_enemy_death,
-                face_enemies,
-                spawn_enemies,
+        app.add_systems(Startup, load_enemy_assets)
+            .add_systems(
+                Update,
+                (
+                    move_enemies,
+                    handle_enemy_death,
+                    face_enemies,
+                    spawn_enemies,
+                )
+                    .run_if(in_state(AppState::InGame)),
             )
-                .run_if(in_state(AppState::InGame)),
-        );
+            .add_systems(OnExit(AppState::InGame), cleanup_enemies);
     }
 }
