@@ -155,8 +155,15 @@ fn setup_experience_bar(
     }
 }
 
-fn cleanup_experience_bar(mut commands: Commands, query: Query<Entity, With<ExperienceBar>>) {
-    for e in query.iter() {
+fn cleanup_experience(
+    mut commands: Commands,
+    bar_query: Query<Entity, With<ExperienceBar>>,
+    orb_query: Query<Entity, (With<ExperienceOrb>, Without<ExperienceBar>)>,
+) {
+    for e in bar_query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+    for e in orb_query.iter() {
         commands.entity(e).despawn_recursive();
     }
 }
@@ -318,7 +325,7 @@ impl Plugin for ExperiencePlugin {
                 Startup,
                 (load_experience_assets, load_experience_bar_assets),
             )
-            .add_systems(OnExit(AppState::InGame), cleanup_experience_bar)
+            .add_systems(OnExit(AppState::InGame), cleanup_experience)
             .add_systems(
                 Update,
                 (
