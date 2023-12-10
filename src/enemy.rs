@@ -210,7 +210,7 @@ struct SpawnEnemiesState {
 
 fn spawn_enemies(
     mut commands: Commands,
-    query: Query<(&Transform, &EnemySpawner)>,
+    spawner_query: Query<&Transform, With<EnemySpawner>>,
     enemy_query: Query<&Enemy, Without<EnemySpawner>>,
     mut night_finished: EventWriter<NightFinished>,
     enemy_assets: Res<EnemyAssets>,
@@ -218,7 +218,6 @@ fn spawn_enemies(
     time: Res<Time>,
     mut state: Local<SpawnEnemiesState>,
     mut spawn_locations: Local<Vec<Vec2>>,
-    mut big_spawn_locations: Local<Vec<Vec2>>,
 ) {
     if difficulty.is_changed() {
         debug!("Setting spawn_enemies state");
@@ -231,23 +230,7 @@ fn spawn_enemies(
     }
 
     if spawn_locations.is_empty() {
-        spawn_locations.extend(query.iter().filter_map(|(t, spawner)| {
-            if !spawner.big_ghost {
-                Some(t.translation.truncate())
-            } else {
-                None
-            }
-        }));
-    }
-
-    if big_spawn_locations.is_empty() {
-        big_spawn_locations.extend(query.iter().filter_map(|(t, spawner)| {
-            if spawner.big_ghost {
-                Some(t.translation.truncate())
-            } else {
-                None
-            }
-        }));
+        spawn_locations.extend(spawner_query.iter().map(|t| t.translation.truncate()));
     }
 
     if !state.night_finished
@@ -340,8 +323,7 @@ fn spawn_enemies(
         let to_spawn_big = state.to_spawn_big as u32;
         state.to_spawn_big -= to_spawn_big as f32;
 
-        let spawner =
-            big_spawn_locations[rand::thread_rng().gen_range(0..big_spawn_locations.len())];
+        let spawner = spawn_locations[rand::thread_rng().gen_range(0..spawn_locations.len())];
 
         for i in 0..to_spawn_big {
             let t = (i as f32 / to_spawn_big as f32) * 2.0 * PI;

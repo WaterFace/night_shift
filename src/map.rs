@@ -64,9 +64,7 @@ impl WallBundle {
 }
 
 #[derive(Debug, Default, Component)]
-pub struct EnemySpawner {
-    pub big_ghost: bool,
-}
+pub struct EnemySpawner;
 
 #[derive(Debug, Default, Bundle)]
 struct EnemySpawnerBundle {
@@ -188,7 +186,7 @@ fn setup_map(mut commands: Commands, assets: Res<MapAssets>) {
         transform: Transform::from_translation(vec3(
             -MAP_SIZE / 2.0 * physics::PHYSICS_SCALE * MAP_SCALE,
             MAP_SIZE / 2.0 * physics::PHYSICS_SCALE * MAP_SCALE,
-            -5.0,
+            -500.0,
         ))
         .with_scale(Vec3::splat(MAP_SCALE * physics::PHYSICS_SCALE)),
         ..Default::default()
@@ -332,10 +330,10 @@ fn setup_map(mut commands: Commands, assets: Res<MapAssets>) {
         22.0,
     ));
 
-    commands.spawn(EnemySpawnerBundle {
-        enemy_spawner: EnemySpawner { big_ghost: true },
-        ..EnemySpawnerBundle::from_pixel_coords(vec2(437.0, 177.0), 55.0)
-    });
+    commands.spawn(EnemySpawnerBundle::from_pixel_coords(
+        vec2(437.0, 177.0),
+        55.0,
+    ));
 
     commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(100.0, 100.0)));
     commands.spawn(PlayerSpawnerBundle::from_pixel_coords(vec2(290.0, 104.0)));
