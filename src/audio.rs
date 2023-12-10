@@ -1,7 +1,4 @@
-use bevy::{
-    asset::{LoadedFolder, VisitAssetDependencies},
-    prelude::*,
-};
+use bevy::prelude::*;
 use rand::seq::SliceRandom;
 
 use crate::{loading::LoadingAssets, states::AppState};
