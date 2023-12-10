@@ -87,7 +87,7 @@ fn cleanup_end(mut commands: Commands, query: Query<Entity, With<EndMarker>>) {
 
 fn handle_start(mut next_state: ResMut<NextState<AppState>>, input: Res<Input<KeyCode>>) {
     if input.just_released(KeyCode::Space) {
-        next_state.set(AppState::InGame);
+        next_state.set(AppState::Restart);
     }
     if input.just_released(KeyCode::Escape) {
         next_state.set(AppState::MainMenu);

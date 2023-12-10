@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier2d::plugin::RapierConfiguration;
 
+use crate::devices::fireball_upgrades::FinishedUpgrading;
+
 #[derive(Debug, Default, States, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AppState {
     #[default]
@@ -29,7 +31,13 @@ pub fn unpause(mut time: ResMut<Time<Virtual>>, mut rapier_config: ResMut<Rapier
     rapier_config.physics_pipeline_active = true;
 }
 
-pub fn restart(mut next_state: ResMut<NextState<AppState>>) {
+pub fn restart(
+    mut next_state: ResMut<NextState<AppState>>,
+    mut writer: EventWriter<FinishedUpgrading>,
+) {
+    // a bit of a hack to get restarts working, see `next_night_delay` in `difficulty.rs`
+    writer.send(FinishedUpgrading);
+    info!("Sent event so restarting works");
     next_state.set(AppState::InGame);
 }
 
