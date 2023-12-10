@@ -86,10 +86,7 @@ impl EnemySpawnerBundle {
                     * MAP_SCALE,
             ),
             collider: Collider::ball(radius * physics::PHYSICS_SCALE),
-            collision_groups: CollisionGroups::new(
-                physics::SPAWNER_GROUP,
-                physics::PLAYER_GROUP | physics::PROJECTILE_GROUP,
-            ),
+            collision_groups: CollisionGroups::new(physics::SPAWNER_GROUP, physics::PLAYER_GROUP),
             ..Default::default()
         }
     }

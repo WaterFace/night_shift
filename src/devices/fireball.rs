@@ -220,7 +220,7 @@ fn fireball_launcher(
                     collider: Collider::ball(0.2 / physics::PHYSICS_SCALE),
                     collision_groups: CollisionGroups::new(
                         physics::PROJECTILE_GROUP,
-                        physics::ENEMY_GROUP | physics::WALL_GROUP | physics::SPAWNER_GROUP,
+                        physics::ENEMY_GROUP | physics::WALL_GROUP,
                     ),
                     active_events: ActiveEvents::COLLISION_EVENTS,
                     ..Default::default()
