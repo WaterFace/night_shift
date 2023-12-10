@@ -147,6 +147,12 @@ fn move_player(mut query: Query<(&Player, &mut character::Character)>, input: Re
     }
 }
 
+fn cleanup_player(mut commands: Commands, query: Query<Entity, With<Player>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+}
+
 fn face_player(
     mut query: Query<(&mut Player, &mut Handle<Image>, &Transform)>,
     main_window_query: Query<&Window, With<PrimaryWindow>>,
@@ -258,7 +264,6 @@ impl Plugin for PlayerPlugin {
                 handle_player_collision,
                 spawn_player,
             )
-                .run_if(in_state(AppState::InGame)),
-        );
+            .add_systems(OnExit(AppState::InGame), cleanup_player);
     }
 }
