@@ -31,6 +31,12 @@ fn move_character(mut query: Query<(&Character, &mut Velocity)>, time: Res<Time>
     }
 }
 
+fn sort_sprites(mut query: Query<&mut Transform, With<Character>>) {
+    for mut t in query.iter_mut() {
+        t.translation.z = -t.translation.y * 0.01;
+    }
+}
+
 fn fix_out_of_bounds(
     mut character_query: Query<(&mut Transform, AnyOf<(&Player, &Enemy)>)>,
     enemy_spawner_query: Query<&Transform, (With<EnemySpawner>, Without<Player>, Without<Enemy>)>,
@@ -84,7 +90,7 @@ impl Plugin for CharacterPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (move_character, fix_out_of_bounds).run_if(in_state(AppState::InGame)),
+            (move_character, fix_out_of_bounds, sort_sprites).run_if(in_state(AppState::InGame)),
         );
     }
 }
