@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    difficulty::Difficulty,
     loading::{GlobalFont, LoadingAssets},
     states::AppState,
 };
@@ -24,7 +25,12 @@ fn load_end_assets(
 #[derive(Debug, Default, Component)]
 struct EndMarker;
 
-fn setup_end(mut commands: Commands, end_assets: Res<EndAssets>, global_font: Res<GlobalFont>) {
+fn setup_end(
+    mut commands: Commands,
+    end_assets: Res<EndAssets>,
+    global_font: Res<GlobalFont>,
+    difficulty: Res<Difficulty>,
+) {
     commands.spawn((
         Camera2dBundle {
             camera_2d: Camera2d {
@@ -67,7 +73,11 @@ fn setup_end(mut commands: Commands, end_assets: Res<EndAssets>, global_font: Re
                     ..Default::default()
                 },
                 text: Text::from_section(
-                    "Press SPACE to restart\nPress ESCAPE to return to Main Menu",
+                    if difficulty.night == 1 {
+                        format!("You worked the Night Shift for {} night\nPress SPACE to restart\nPress ESCAPE to return to Main Menu", difficulty.night)
+                    } else {
+                        format!("You worked the Night Shift for {} nights\nPress SPACE to restart\nPress ESCAPE to return to Main Menu", difficulty.night)
+                    },
                     TextStyle {
                         font: global_font.0.clone(),
                         font_size: 36.0,
