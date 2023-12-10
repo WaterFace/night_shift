@@ -144,10 +144,8 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LoadingAssets>()
             .add_systems(Startup, load_font)
-            .add_systems(
-                Update,
-                (load_assets, set_texture_filtering).run_if(in_state(AppState::Loading)),
-            )
+            .add_systems(Update, load_assets.run_if(in_state(AppState::Loading)))
+            .add_systems(Update, set_texture_filtering)
             .add_systems(OnEnter(AppState::Loading), setup_loading_bar)
             .add_systems(OnExit(AppState::Loading), cleanup_loading);
     }
