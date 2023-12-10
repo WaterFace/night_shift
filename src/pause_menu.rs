@@ -20,6 +20,7 @@ fn pause_menu(
     mut volume_settings: ResMut<VolumeSettings>,
 ) {
     let ctx = egui_contexts.ctx_mut();
+    volume_settings.bypass_change_detection();
 
     egui::Window::new("Paused")
         .default_width(600.0)
@@ -42,23 +43,14 @@ fn pause_menu(
                 }
                 if ui
                     .add(
-                        egui::Slider::new(&mut volume_settings.sound_volume, 0.0..=2.0)
+                        egui::Slider::new(&mut volume_settings.volume, 0.0..=2.0)
                             .text("Sound")
                             .custom_formatter(formatter),
                     )
                     .changed()
                 {
-                    debug!("Sound volume changed to {}", volume_settings.sound_volume);
-                }
-                if ui
-                    .add(
-                        egui::Slider::new(&mut volume_settings.music_volume, 0.0..=2.0)
-                            .text("Music")
-                            .custom_formatter(formatter),
-                    )
-                    .changed()
-                {
-                    debug!("Music volume changed to {}", volume_settings.music_volume);
+                    volume_settings.set_changed();
+                    debug!("Sound volume changed to {}", volume_settings.volume);
                 }
             });
         });
