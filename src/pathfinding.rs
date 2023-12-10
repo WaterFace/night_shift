@@ -126,6 +126,9 @@ impl Pathfinder {
                             }
                         }
                     }
+                    if !self.visible.contains_key(&node) {
+                        continue;
+                    }
                     for adjacent_node in self.visible[&node].iter().copied() {
                         if explored.contains(&adjacent_node) {
                             continue;
