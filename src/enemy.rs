@@ -345,8 +345,8 @@ fn spawn_enemies(
                     .with_scale(Vec3::splat(0.5 * physics::PHYSICS_SCALE)),
                     collider: Collider::ball(1.1 / physics::PHYSICS_SCALE),
                     collision_groups: CollisionGroups::new(
-                        physics::ENEMY_GROUP,
-                        physics::ENEMY_GROUP
+                        physics::BIG_ENEMY_GROUP,
+                        physics::BIG_ENEMY_GROUP
                             | physics::WALL_GROUP
                             | physics::PLAYER_GROUP
                             | physics::PROJECTILE_GROUP,

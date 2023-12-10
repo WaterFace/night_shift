@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{
     enemy::Enemy,
-    health::DamageEvent,
+    health::{DamageEvent, Health},
     loading::LoadingAssets,
     map::{EnemySpawner, Wall},
     physics,
@@ -175,7 +175,12 @@ fn aim_fireball_launcher(
 
 fn fireball_launcher(
     mut commands: Commands,
-    mut query: Query<(&Transform, &FireballLauncher, &mut FireballLauncherState)>,
+    mut query: Query<(
+        &Transform,
+        &FireballLauncher,
+        &mut FireballLauncherState,
+        &Health,
+    )>,
     input: Res<Input<MouseButton>>,
     fireball_assets: Res<FireballAssets>,
     time: Res<Time>,
@@ -183,7 +188,10 @@ fn fireball_launcher(
     const LAUNCH_DISTANCE: f32 = 0.2;
     let pressed = input.pressed(MouseButton::Left);
 
-    for (transform, launcher, mut state) in query.iter_mut() {
+    for (transform, launcher, mut state, health) in query.iter_mut() {
+        if health.dead {
+            continue;
+        }
         if state.time_since_last_shot < launcher.fire_delay.value() {
             state.time_since_last_shot += time.delta_seconds();
         }
@@ -221,7 +229,7 @@ fn fireball_launcher(
                     collider: Collider::ball(0.2 / physics::PHYSICS_SCALE),
                     collision_groups: CollisionGroups::new(
                         physics::PROJECTILE_GROUP,
-                        physics::ENEMY_GROUP | physics::WALL_GROUP,
+                        physics::ENEMY_GROUP | physics::WALL_GROUP | physics::BIG_ENEMY_GROUP,
                     ),
                     active_events: ActiveEvents::COLLISION_EVENTS,
                     ccd: Ccd::enabled(),

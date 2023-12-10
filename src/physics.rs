@@ -11,6 +11,7 @@ pub const ENEMY_GROUP: Group = Group::from_bits_retain(1 << 1);
 pub const PROJECTILE_GROUP: Group = Group::from_bits_retain(1 << 2);
 pub const WALL_GROUP: Group = Group::from_bits_retain(1 << 3);
 pub const SPAWNER_GROUP: Group = Group::from_bits_retain(1 << 4);
+pub const BIG_ENEMY_GROUP: Group = Group::from_bits_retain(1 << 5);
 
 pub const PHYSICS_SCALE: f32 = 1.0 / 32.0;
 
