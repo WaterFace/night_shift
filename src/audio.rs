@@ -14,7 +14,7 @@ fn load_music(
     mut loading_assets: ResMut<LoadingAssets>,
 ) {
     let mut tracks = vec![
-        asset_server.load::<AudioSource>("music/Alpha Hydrae - La Pêche.mp3"),
+        asset_server.load::<AudioSource>("music/Alpha Hydrae - La Peche.mp3"),
         asset_server.load::<AudioSource>("music/Zoliborz - To Balagopalan Ganapathy.mp3"),
         asset_server.load::<AudioSource>("music/Alpha Hydrae - To be like a chased rabbit.mp3"),
         asset_server.load::<AudioSource>("music/Cathedral Of Chemical Equilibrium - One.mp3"),
