@@ -233,6 +233,12 @@ fn fireball_launcher(
     }
 }
 
+fn cleanup_fireballs(mut commands: Commands, query: Query<Entity, With<Fireball>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive()
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 struct FireballAssets {
     texture: Handle<Image>,
@@ -252,7 +258,8 @@ pub struct FireballLauncherPlugin;
 
 impl Plugin for FireballLauncherPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_fireball_assets).add_systems(
+        app.add_systems(Startup, load_fireball_assets)
+            .add_systems(
             Update,
             (
                 setup_fireball_launcher,
@@ -261,6 +268,7 @@ impl Plugin for FireballLauncherPlugin {
                 aim_fireball_launcher,
             )
                 .run_if(in_state(AppState::InGame)),
-        );
+            )
+            .add_systems(OnExit(AppState::InGame), cleanup_fireballs);
     }
 }
