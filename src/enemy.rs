@@ -210,6 +210,14 @@ struct SpawnEnemiesState {
 
 fn spawn_enemies(
     mut commands: Commands,
+    player_query: Query<
+        &Health,
+        (
+            With<crate::player::Player>,
+            Without<EnemySpawner>,
+            Without<Enemy>,
+        ),
+    >,
     spawner_query: Query<&Transform, With<EnemySpawner>>,
     enemy_query: Query<&Enemy, Without<EnemySpawner>>,
     mut night_finished: EventWriter<NightFinished>,
@@ -237,6 +245,7 @@ fn spawn_enemies(
         && state.enemies_remaining + state.to_spawn < 1.0
         && state.big_enemies_remaining + state.to_spawn_big < 1.0
         && enemy_query.is_empty()
+        && player_query.iter().any(|h| !h.dead)
     {
         debug!("All enemies killed. Ending night.");
         state.night_finished = true;

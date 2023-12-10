@@ -57,6 +57,7 @@ struct PlayerAssets {
     texture_left: Handle<Image>,
     texture_up: Handle<Image>,
     texture_down: Handle<Image>,
+    texture_dead: Handle<Image>,
 }
 
 fn load_player_assets(
@@ -68,17 +69,20 @@ fn load_player_assets(
     let texture_left = asset_server.load("textures/guy left.png");
     let texture_up = asset_server.load("textures/guy up.png");
     let texture_down = asset_server.load("textures/guy down.png");
+    let texture_dead = asset_server.load("textures/guy dead.png");
 
     loading_assets.add(texture_right.clone());
     loading_assets.add(texture_left.clone());
     loading_assets.add(texture_up.clone());
     loading_assets.add(texture_down.clone());
+    loading_assets.add(texture_dead.clone());
 
     commands.insert_resource(PlayerAssets {
         texture_right,
         texture_left,
         texture_down,
         texture_up,
+        texture_dead,
     });
 }
 
@@ -107,6 +111,7 @@ fn spawn_player(
             collision_groups: CollisionGroups::new(
                 physics::PLAYER_GROUP,
                 physics::ENEMY_GROUP
+                    | physics::BIG_ENEMY_GROUP
                     | physics::WALL_GROUP
                     | physics::PLAYER_GROUP
                     | physics::SPAWNER_GROUP,
@@ -125,7 +130,10 @@ fn spawn_player(
         .insert(devices::fireball::FireballLauncher::default());
 }
 
-fn move_player(mut query: Query<(&Player, &mut character::Character)>, input: Res<Input<KeyCode>>) {
+fn move_player(
+    mut query: Query<(&Player, &mut character::Character, &Health)>,
+    input: Res<Input<KeyCode>>,
+) {
     let mut desired_direction = Vec2::ZERO;
     if input.pressed(KeyCode::A) {
         desired_direction += vec2(-1.0, 0.0);
@@ -142,7 +150,10 @@ fn move_player(mut query: Query<(&Player, &mut character::Character)>, input: Re
     let desired_velocity = desired_direction.length().clamp(0.0, 1.0);
     desired_direction = desired_direction.normalize_or_zero();
 
-    for (_player, mut character) in query.iter_mut() {
+    for (_player, mut character, health) in query.iter_mut() {
+        if health.dead {
+            continue;
+        }
         character.desired_direction = desired_direction * desired_velocity;
     }
 }
@@ -154,7 +165,7 @@ fn cleanup_player(mut commands: Commands, query: Query<Entity, With<Player>>) {
 }
 
 fn face_player(
-    mut query: Query<(&mut Player, &mut Handle<Image>, &Transform)>,
+    mut query: Query<(&mut Player, &mut Handle<Image>, &Transform, &Health)>,
     main_window_query: Query<&Window, With<PrimaryWindow>>,
     main_camera_query: Query<(&Camera, &GlobalTransform)>,
     player_assets: Res<PlayerAssets>,
@@ -169,7 +180,11 @@ fn face_player(
         return;
     };
 
-    for (mut player, mut player_sprite, transform) in query.iter_mut() {
+    for (mut player, mut player_sprite, transform, health) in query.iter_mut() {
+        if health.dead {
+            *player_sprite = player_assets.texture_dead.clone();
+            continue;
+        }
         let player_pos = transform.translation.truncate();
 
         let Some(cursor_pos) = main_window.cursor_position() else {
@@ -256,10 +271,18 @@ fn handle_player_death(
     player_query: Query<Entity, With<Player>>,
     mut death_events: EventReader<DeathEvent>,
     mut next_state: ResMut<NextState<AppState>>,
+    mut time_to_next_state: Local<f32>,
+    time: Res<Time>,
 ) {
     for ev in death_events.read() {
         if player_query.contains(ev.entity) {
-            next_state.set(AppState::Dead)
+            *time_to_next_state = 2.0;
+        }
+    }
+    if *time_to_next_state > 0.0 {
+        *time_to_next_state -= time.delta_seconds();
+        if *time_to_next_state <= 0.0 {
+            next_state.set(AppState::Dead);
         }
     }
 }
