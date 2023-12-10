@@ -42,14 +42,8 @@ fn process_damage_events(
 ) {
     for ev in reader.read() {
         let Ok(mut health) = query.get_mut(ev.entity) else {
-            debug!(
-                "Recieved damage event for non-existent entity: {:?}",
-                ev.entity
-            );
             continue;
         };
-
-        debug!("Entity {:?} took {:?} damage", ev.entity, ev.amount);
 
         health.current = f32::clamp(health.current - ev.amount, 0.0, health.maximum);
 

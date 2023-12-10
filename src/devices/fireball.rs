@@ -117,7 +117,6 @@ fn handle_fireball_collisions(
                             entity: other_entity,
                             amount: fireball.damage,
                         });
-                        debug!("Fireball hit enemy {:?}", other_entity);
                     }
 
                     if fireball.punch_through < 1.0 {
