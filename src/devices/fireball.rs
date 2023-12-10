@@ -73,6 +73,7 @@ struct FireballBundle {
     pub sensor: Sensor,
     pub active_events: ActiveEvents,
     pub locked_axes: LockedAxes,
+    pub ccd: Ccd,
 
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -223,6 +224,7 @@ fn fireball_launcher(
                         physics::ENEMY_GROUP | physics::WALL_GROUP,
                     ),
                     active_events: ActiveEvents::COLLISION_EVENTS,
+                    ccd: Ccd::enabled(),
                     ..Default::default()
                 });
             }
