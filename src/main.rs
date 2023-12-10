@@ -1,10 +1,12 @@
 use bevy::{log::LogPlugin, prelude::*};
 
+mod audio;
 mod camera;
 mod character;
 mod debug;
 mod devices;
 mod difficulty;
+mod end;
 mod enemy;
 mod experience;
 mod health;
@@ -13,6 +15,7 @@ mod loading;
 mod main_menu;
 mod map;
 mod pathfinding;
+mod pause_menu;
 mod physics;
 mod player;
 mod states;
@@ -45,7 +48,13 @@ fn main() {
             difficulty::DifficultyPlugin,
             loading::LoadingPlugin,
         ))
-        .add_plugins((states::StatesPlugin, main_menu::MainMenuPlugin))
+        .add_plugins((
+            states::StatesPlugin,
+            main_menu::MainMenuPlugin,
+            end::EndPlugin,
+            pause_menu::PauseMenuPlugin,
+            audio::AudioPlugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }

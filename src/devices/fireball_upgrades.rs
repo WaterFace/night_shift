@@ -1,12 +1,16 @@
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{Align2, InnerResponse, Layout, Response, Rounding, Ui, WidgetText},
+    egui::{Align2, InnerResponse, Layout, Response, Ui},
     *,
 };
 
 use crate::{experience::ExperienceCounter, states::GameState, ui::square_button};
 
-use super::{fireball::FireballLauncher, UpgradesMenuState};
+use super::fireball::FireballLauncher;
+
+#[derive(Debug, Default, Event, Clone, Copy)]
+pub struct FinishedUpgrading;
+
 // launch_speed: Upgradeable,
 fn launch_speed_formula(level: u32) -> f32 {
     0.25 * f32::log2((level + 1) as f32) + 1.0
@@ -40,12 +44,11 @@ fn format_multishot(buf: &mut String, value: f32) {
     write!(buf, "+{:.0}%", (value - 1.0) * 100.0).unwrap();
 }
 
-pub struct FireballLauncherUpgradesPlugin;
-
 fn fireball_launcher_upgrade_menu(
     mut contexts: EguiContexts,
     mut query: Query<(&mut FireballLauncher, &mut ExperienceCounter)>,
-    mut next_state: ResMut<NextState<UpgradesMenuState>>,
+    mut writer: EventWriter<FinishedUpgrading>,
+    mut next_state: ResMut<NextState<GameState>>,
     mut modifiable_launcher: Local<Option<FireballLauncher>>,
     mut initial_state: Local<Option<FireballLauncher>>,
     mut reserved_strings: Local<[String; 5]>,
@@ -208,10 +211,16 @@ fn fireball_launcher_upgrade_menu(
         }) => {
             if confirm.clicked() {
                 *launcher = modifiable_launcher.take().unwrap();
-                next_state.set(UpgradesMenuState::Closed);
+                next_state.set(GameState::Playing);
                 let spent = experience_counter.upgrade_points() - *free_points;
                 experience_counter.spend_points(spent);
                 let _ = free_points_local.take();
+
+                writer.send(FinishedUpgrading);
+
+                // Reset local state so nothing leaks between uses
+                *modifiable_launcher = None;
+                *initial_state = None;
             }
         }
     }
@@ -242,15 +251,13 @@ fn adjuster(ui: &mut Ui, heading: &str, value: &str) -> (Response, Response) {
     .inner
 }
 
-fn square_button(text: impl Into<WidgetText>) -> egui::Button<'static> {
-    egui::Button::new(text).rounding(Rounding::ZERO)
-}
+pub struct FireballLauncherUpgradesPlugin;
 
 impl Plugin for FireballLauncherUpgradesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.add_event::<FinishedUpgrading>().add_systems(
             Update,
-            fireball_launcher_upgrade_menu.run_if(in_state(super::UpgradesMenuState::Open)),
+            fireball_launcher_upgrade_menu.run_if(in_state(GameState::Upgrading)),
         );
     }
 }

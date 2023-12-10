@@ -53,7 +53,31 @@ fn setup_healthbars(
 ) {
     for (e, enemy, player) in query.iter() {
         if let Some(_player) = player {
-            // TODO: spawn the big player healthbar
+            let material = materials.add(HealthbarMaterial {
+                filled_color: Color::RED,
+                empty_color: Color::GRAY,
+                fraction: 1.0,
+            });
+            commands.entity(e).insert(HasHealthbar {
+                healthbar_mat: material.clone(),
+            });
+
+            commands.spawn((
+                MaterialNodeBundle::<HealthbarMaterial> {
+                    style: Style {
+                        left: Val::Percent(30.0),
+                        right: Val::Percent(30.0),
+                        height: Val::Px(20.0),
+                        top: Val::Px(10.0),
+                        justify_content: JustifyContent::Center,
+                        position_type: PositionType::Absolute,
+                        ..Default::default()
+                    },
+                    material,
+                    ..Default::default()
+                },
+                Healthbar,
+            ));
             continue;
         }
 
@@ -84,6 +108,12 @@ fn setup_healthbars(
         *rolling_offset += 0.001;
     }
     *rolling_offset %= 2.0;
+}
+
+fn cleanup_healthbars(mut commands: Commands, query: Query<Entity, With<Healthbar>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
@@ -158,6 +188,7 @@ impl Plugin for HealthbarPlugin {
         .add_systems(
             Update,
             (setup_healthbars, update_healthbars).run_if(in_state(AppState::InGame)),
-        );
+        )
+        .add_systems(OnExit(AppState::InGame), cleanup_healthbars);
     }
 }

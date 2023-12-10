@@ -180,6 +180,17 @@ impl Pathfinder {
 
         return &self.region_to_nodes[&player_region];
     }
+
+    pub fn get_region(&self, point: Vec2) -> Option<&Region> {
+        match self.get_region_index(point) {
+            None => None,
+            Some(i) => Some(&self.regions[i]),
+        }
+    }
+}
+
+fn start_pathfinder(mut commands: Commands) {
+    commands.insert_resource(Pathfinder::default());
 }
 
 #[derive(Debug, Default, Resource)]
@@ -234,10 +245,6 @@ fn find_player_region(
         if i != current_region {
             *previous_region = Some(i);
             pathfinder.player_region = Some(current_region);
-            debug!(
-                "Player changed region! {} -> {}",
-                pathfinder.regions[i].name, pathfinder.regions[current_region].name
-            );
         }
     } else {
         pathfinder.player_region = Some(current_region);
@@ -267,18 +274,18 @@ pub struct PathfindingPlugin;
 
 impl Plugin for PathfindingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Pathfinder>()
-            .add_systems(
-                Update,
-                (add_nodes_and_regions, debug_pathfinding, find_player_region)
-                    .run_if(in_state(AppState::InGame)),
-            )
-            .add_systems(OnExit(AppState::InGame), cleanup_pathfinding)
-            .add_systems(
-                PostUpdate,
-                precompute
-                    .run_if(in_state(AppState::InGame))
-                    .after(TransformSystem::TransformPropagate),
-            );
+        app.add_systems(
+            Update,
+            (add_nodes_and_regions, debug_pathfinding, find_player_region)
+                .run_if(in_state(AppState::InGame)),
+        )
+        .add_systems(OnEnter(AppState::InGame), start_pathfinder)
+        .add_systems(OnExit(AppState::InGame), cleanup_pathfinding)
+        .add_systems(
+            PostUpdate,
+            precompute
+                .run_if(in_state(AppState::InGame))
+                .after(TransformSystem::TransformPropagate),
+        );
     }
 }

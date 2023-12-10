@@ -136,19 +136,28 @@ fn setup_experience_bar(
             material: material.clone(),
         });
 
-        commands.spawn(MaterialNodeBundle::<HealthbarMaterial> {
-            style: Style {
-                left: Val::Percent(30.0),
-                right: Val::Percent(30.0),
-                height: Val::Px(20.0),
-                top: Val::Px(10.0),
-                justify_content: JustifyContent::Center,
-                position_type: PositionType::Absolute,
+        commands.spawn((
+            MaterialNodeBundle::<HealthbarMaterial> {
+                style: Style {
+                    left: Val::Percent(30.0),
+                    right: Val::Percent(30.0),
+                    height: Val::Px(20.0),
+                    top: Val::Px(35.0),
+                    justify_content: JustifyContent::Center,
+                    position_type: PositionType::Absolute,
+                    ..Default::default()
+                },
+                material,
                 ..Default::default()
             },
-            material,
-            ..Default::default()
-        });
+            ExperienceBar,
+        ));
+    }
+}
+
+fn cleanup_experience_bar(mut commands: Commands, query: Query<Entity, With<ExperienceBar>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
     }
 }
 
@@ -306,9 +315,10 @@ impl Plugin for ExperiencePlugin {
         app.add_event::<SpawnExperience>()
             .add_event::<CollectExperience>()
             .add_systems(
-                OnEnter(AppState::InGame),
+                Startup,
                 (load_experience_assets, load_experience_bar_assets),
             )
+            .add_systems(OnExit(AppState::InGame), cleanup_experience_bar)
             .add_systems(
                 Update,
                 (

@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::states::AppState;
+use crate::{
+    devices::fireball_upgrades::FinishedUpgrading,
+    states::{AppState, GameState},
+};
 
 #[derive(Debug, Default, Resource)]
 pub struct Difficulty {
@@ -55,17 +58,56 @@ pub struct StartNight;
 #[derive(Event, Debug, Default)]
 pub struct NightFinished;
 
-fn handle_events(mut difficulty: ResMut<Difficulty>, mut reader: EventReader<StartNight>) {
+fn handle_events(
+    mut difficulty: ResMut<Difficulty>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut start_night_reader: EventReader<StartNight>,
+    mut night_finished_reader: EventReader<NightFinished>,
+) {
     difficulty.bypass_change_detection();
-    for _ in reader.read() {
+    for _ in start_night_reader.read() {
         difficulty.next_night();
         difficulty.set_changed();
-        debug!("Beginning night {}:\n{:?}", difficulty.night, difficulty);
+        debug!("Beginning night {}:", difficulty.night);
+    }
+
+    for _ in night_finished_reader.read() {
+        if difficulty.night > 0 {
+            debug!("Finished night {}", difficulty.night);
+            next_state.set(GameState::Upgrading);
+        }
     }
 }
 
 fn setup_difficulty(mut commands: Commands) {
     commands.insert_resource(Difficulty::default());
+}
+
+fn next_night_delay(
+    mut start_night: EventWriter<StartNight>,
+    mut finished_upgrading: EventReader<FinishedUpgrading>,
+    time: Res<Time>,
+    mut elapsed: Local<f32>,
+    mut finished: Local<bool>,
+) {
+    for _ in finished_upgrading.read() {
+        *finished = false;
+        *elapsed = 0.0;
+    }
+
+    if *finished {
+        return;
+    }
+
+    *elapsed += time.delta_seconds();
+
+    const DELAY: f32 = 1.5;
+
+    if *elapsed >= DELAY {
+        start_night.send(StartNight);
+        *finished = true;
+        *elapsed = 0.0;
+    }
 }
 
 pub struct DifficultyPlugin;
@@ -75,6 +117,9 @@ impl Plugin for DifficultyPlugin {
         app.add_event::<StartNight>()
             .add_event::<NightFinished>()
             .add_systems(OnEnter(AppState::InGame), setup_difficulty)
-            .add_systems(Update, handle_events.run_if(in_state(AppState::InGame)));
+            .add_systems(
+                Update,
+                (handle_events, next_night_delay).run_if(in_state(AppState::InGame)),
+            );
     }
 }

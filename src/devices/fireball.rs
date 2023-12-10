@@ -259,14 +259,14 @@ impl Plugin for FireballLauncherPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_fireball_assets)
             .add_systems(
-            Update,
-            (
-                setup_fireball_launcher,
-                handle_fireball_collisions,
-                fireball_launcher,
-                aim_fireball_launcher,
-            )
-                .run_if(in_state(AppState::InGame)),
+                Update,
+                (
+                    setup_fireball_launcher,
+                    handle_fireball_collisions,
+                    fireball_launcher,
+                    aim_fireball_launcher,
+                )
+                    .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnExit(AppState::InGame), cleanup_fireballs);
     }

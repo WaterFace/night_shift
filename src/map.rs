@@ -225,7 +225,7 @@ fn setup_map(mut commands: Commands, assets: Res<MapAssets>) {
 
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(45.0, 193.0)));
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(198.0, 193.0)));
-    commands.spawn(PathNodeBundle::from_pixel_coords(vec2(320.0, 193.0)));
+    commands.spawn(PathNodeBundle::from_pixel_coords(vec2(320.0, 203.0)));
 
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(46.0, 249.0)));
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(210.0, 268.0)));
@@ -234,7 +234,7 @@ fn setup_map(mut commands: Commands, assets: Res<MapAssets>) {
 
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(45.0, 268.0)));
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(203.0, 285.0)));
-    commands.spawn(PathNodeBundle::from_pixel_coords(vec2(320.0, 275.0)));
+    commands.spawn(PathNodeBundle::from_pixel_coords(vec2(320.0, 325.0)));
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(440.0, 275.0)));
 
     commands.spawn(PathNodeBundle::from_pixel_coords(vec2(87.0, 314.0)));

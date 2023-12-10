@@ -8,7 +8,7 @@ use crate::{
     character, devices,
     enemy::Enemy,
     experience::ExperienceCounter,
-    health::{DamageEvent, Health},
+    health::{DamageEvent, DeathEvent, Health},
     loading::LoadingAssets,
     map::PlayerSpawner,
     physics,
@@ -252,17 +252,33 @@ fn handle_player_collision(
     }
 }
 
+fn handle_player_death(
+    player_query: Query<Entity, With<Player>>,
+    mut death_events: EventReader<DeathEvent>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+    for ev in death_events.read() {
+        if player_query.contains(ev.entity) {
+            next_state.set(AppState::Dead)
+        }
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_player_assets).add_systems(
-            Update,
-            (
-                move_player,
-                face_player,
-                handle_player_collision,
-                spawn_player,
+        app.add_systems(Startup, load_player_assets)
+            .add_systems(
+                Update,
+                (
+                    move_player,
+                    face_player,
+                    handle_player_collision,
+                    spawn_player,
+                    handle_player_death,
+                )
+                    .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnExit(AppState::InGame), cleanup_player);
     }

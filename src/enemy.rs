@@ -7,7 +7,7 @@ use rand::Rng;
 use crate::{
     character,
     debug::DebugOverlay,
-    difficulty::Difficulty,
+    difficulty::{Difficulty, NightFinished},
     experience::SpawnExperience,
     health::{DeathEvent, Health},
     loading::LoadingAssets,
@@ -181,11 +181,14 @@ struct SpawnEnemiesState {
     time_since_last_spawn: f32,
     to_spawn: f32,
     to_spawn_big: f32,
+    night_finished: bool,
 }
 
 fn spawn_enemies(
     mut commands: Commands,
     query: Query<(&Transform, &EnemySpawner)>,
+    enemy_query: Query<&Enemy, Without<EnemySpawner>>,
+    mut night_finished: EventWriter<NightFinished>,
     enemy_assets: Res<EnemyAssets>,
     difficulty: Res<Difficulty>,
     time: Res<Time>,
@@ -200,6 +203,7 @@ fn spawn_enemies(
         state.time_since_last_spawn = 0.0;
         state.to_spawn = 0.0;
         state.to_spawn_big = 0.0;
+        state.night_finished = false;
     }
 
     if spawn_locations.is_empty() {
@@ -222,6 +226,16 @@ fn spawn_enemies(
         }));
     }
 
+    if !state.night_finished
+        && state.enemies_remaining + state.to_spawn < 1.0
+        && state.big_enemies_remaining + state.to_spawn_big < 1.0
+        && enemy_query.is_empty()
+    {
+        debug!("All enemies killed. Ending night.");
+        state.night_finished = true;
+        night_finished.send(NightFinished);
+    }
+
     let time_between_spawns = difficulty.spawn_delay;
 
     state.time_since_last_spawn += time.delta_seconds();
@@ -235,13 +249,14 @@ fn spawn_enemies(
     // Try to spawn about 5% of the total wave size per batch
     const BATCH_FRACTION: f32 = 0.05;
 
-    state.to_spawn += f32::min(
+    let batch = f32::min(
         state.enemies_remaining,
         difficulty.enemies_to_spawn * BATCH_FRACTION,
     );
+    state.to_spawn += batch;
+    state.enemies_remaining -= batch;
 
     if state.to_spawn >= 1.0 {
-        state.enemies_remaining -= state.to_spawn.floor();
         let to_spawn = state.to_spawn as u32;
         state.to_spawn -= to_spawn as f32;
 
@@ -272,7 +287,7 @@ fn spawn_enemies(
                 health: Health::new(2.0 * difficulty.health_multiplier),
                 enemy: Enemy {
                     experience_dropped: 1.0 * difficulty.experience_multiplier,
-                    healthbar_offset: 0.6,
+                    healthbar_offset: 0.65,
                     healthbar_width: 1.0,
                     knockback: 8.0,
                     damage: 1.0 * difficulty.damage_multiplier,
@@ -287,13 +302,14 @@ fn spawn_enemies(
         }
     }
 
-    state.to_spawn_big += f32::min(
+    let batch = f32::min(
         state.big_enemies_remaining,
         difficulty.big_enemies_to_spawn * BATCH_FRACTION,
     );
+    state.to_spawn_big += batch;
+    state.big_enemies_remaining -= batch;
 
     if state.to_spawn_big >= 1.0 {
-        state.big_enemies_remaining -= state.to_spawn_big.floor();
         let to_spawn_big = state.to_spawn_big as u32;
         state.to_spawn_big -= to_spawn_big as f32;
 
@@ -325,7 +341,7 @@ fn spawn_enemies(
                 health: Health::new(30.0 * difficulty.health_multiplier),
                 enemy: Enemy {
                     experience_dropped: 10.0 * difficulty.experience_multiplier,
-                    healthbar_offset: 1.2,
+                    healthbar_offset: 1.3,
                     healthbar_width: 3.0,
                     knockback: 20.0,
                     damage: 3.0 * difficulty.damage_multiplier,

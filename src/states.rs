@@ -7,6 +7,7 @@ pub enum AppState {
     Loading,
     MainMenu,
     InGame,
+    Restart,
     Dead,
 }
 
