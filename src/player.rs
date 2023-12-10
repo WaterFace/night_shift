@@ -118,11 +118,7 @@ fn spawn_player(
                 max_speed: 3.0,
                 ..Default::default()
             },
-            health: Health {
-                current: 100.0,
-                maximum: 100.0,
-                dead: false,
-            },
+            health: Health::new(25.0),
             transform: t,
             ..Default::default()
         })
