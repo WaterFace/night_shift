@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     devices::fireball_upgrades::FinishedUpgrading,
+    loading::GlobalFont,
     states::{AppState, GameState},
 };
 
@@ -83,16 +84,73 @@ fn setup_difficulty(mut commands: Commands) {
     commands.insert_resource(Difficulty::default());
 }
 
+#[derive(Component, Debug, Default)]
+struct SplashMarker;
+
+fn setup_splash(mut commands: Commands, global_font: Res<GlobalFont>) {
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            SplashMarker,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle {
+                    text: Text::from_section(
+                        "Night 1",
+                        TextStyle {
+                            font: global_font.0.clone(),
+                            font_size: 216.0,
+                            ..Default::default()
+                        },
+                    ),
+                    ..Default::default()
+                },
+                SplashMarker,
+            ));
+        });
+}
+
+fn cleanup_splash(mut commands: Commands, query: Query<Entity, With<SplashMarker>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+}
+
 fn next_night_delay(
+    mut splash_query: Query<(&mut Text, &mut Visibility), With<SplashMarker>>,
     mut start_night: EventWriter<StartNight>,
     mut finished_upgrading: EventReader<FinishedUpgrading>,
     time: Res<Time>,
+    difficulty: Res<Difficulty>,
+    global_font: Res<GlobalFont>,
     mut elapsed: Local<f32>,
     mut finished: Local<bool>,
 ) {
     for _ in finished_upgrading.read() {
         *finished = false;
         *elapsed = 0.0;
+        let night = difficulty.night;
+        for (mut text, mut visibility) in splash_query.iter_mut() {
+            *text = Text::from_section(
+                format!("Night {}", night + 1),
+                TextStyle {
+                    font: global_font.0.clone(),
+                    font_size: 216.0,
+                    ..Default::default()
+                },
+            );
+            *visibility = Visibility::Visible;
+        }
     }
 
     if *finished {
@@ -101,12 +159,16 @@ fn next_night_delay(
 
     *elapsed += time.delta_seconds();
 
-    const DELAY: f32 = 1.5;
+    const DELAY: f32 = 2.0;
 
     if *elapsed >= DELAY {
         start_night.send(StartNight);
         *finished = true;
         *elapsed = 0.0;
+
+        for (_, mut visibility) in splash_query.iter_mut() {
+            *visibility = Visibility::Hidden;
+        }
     }
 }
 
@@ -116,7 +178,8 @@ impl Plugin for DifficultyPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<StartNight>()
             .add_event::<NightFinished>()
-            .add_systems(OnEnter(AppState::InGame), setup_difficulty)
+            .add_systems(OnEnter(AppState::InGame), (setup_difficulty, setup_splash))
+            .add_systems(OnExit(AppState::InGame), cleanup_splash)
             .add_systems(
                 Update,
                 (handle_events, next_night_delay).run_if(in_state(AppState::InGame)),
