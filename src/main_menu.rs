@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    devices::fireball_upgrades::FinishedUpgrading,
     loading::{GlobalFont, LoadingAssets},
     states::AppState,
 };
@@ -89,8 +90,15 @@ fn cleanup_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuM
     }
 }
 
-fn handle_start(mut next_state: ResMut<NextState<AppState>>, input: Res<Input<KeyCode>>) {
+fn handle_start(
+    mut next_state: ResMut<NextState<AppState>>,
+    input: Res<Input<KeyCode>>,
+    mut writer: EventWriter<FinishedUpgrading>,
+) {
     if input.just_released(KeyCode::Space) {
+        // a bit of a hack to get restarts working, see `next_night_delay` in `difficulty.rs`
+        writer.send(FinishedUpgrading);
+        info!("Sent event so restarting works");
         next_state.set(AppState::InGame);
     }
 }
