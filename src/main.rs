@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*};
 
 mod audio;
