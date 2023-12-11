@@ -1,5 +1,4 @@
 /target
 out/*.wasm
-out/*.js
 out/assets
 out/*.zip
